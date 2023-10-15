@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="jsonApp">
+
+<head>
+    <meta charset="UTF-8">
+    <title>JSON Validator & Formatter</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <style>
+        .container {
+            display: flex;
+            justify-content: space-evenly;
+        }
+
+        .container textarea,
+        .container pre {
+            flex: 1;
+        }
+        .output-Container {
+            width: 100px; 
+            height: 500px; 
+            border: 1px solid #000; 
+            overflow: auto; 
+        }
+        .input_Container{
+            width: 500px; 
+            height: 500px;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div ng-controller="jsonController" class="container">
+        <div>
+            <label>
+                Formatting Style:
+                <select ng-model="selectedStyle" ng-change="formatData()">
+                    <option value="2">2 Tab Spacing</option>
+                    <option value="3">3 Tab Spacing</option>
+                    <option value="compact">Compact</option>
+                </select>
+            </label>
+           
+            <br>
+            <textarea ng-model="jsonData" placeholder="Enter JSON data here" class="input_Container" ></textarea>
+            <br>
+            <button ng-click="formatData()">Format JSON</button>
+        </div>
+        <h4>Formatted JSON:</h4>
+        
+        <pre class="output-Container">{{formattedData}}</pre>
+    </div>
+
+    <script>
+        var app = angular.module('jsonApp', []);
+
+        app.controller('jsonController', function($scope) {
+            $scope.selectedStyle = "2";
+
+            $scope.formatData = function() {
+                try {
+                    var parsedData = JSON.parse($scope.jsonData);
+
+                    var spacing = $scope.selectedStyle === "compact" ? null : Number($scope.selectedStyle);
+                    $scope.formattedData = JSON.stringify(parsedData, null, spacing);
+                } catch (error) {
+                    $scope.formattedData = "Invalid JSON: " + error.message;
+                }
+            };
+        });
+    </script>
+</body>
+
+</html>
