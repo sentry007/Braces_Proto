@@ -1,76 +1,214 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="jsonApp">
+<!-- this is for main jf.org -->
+<html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Braces P0.1</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
-    <style>
-        .container {
-            display: flex;
-            justify-content: space-evenly;
-        }
-
-        .container textarea,
-        .container pre {
-            flex: 1;
-        }
-        .output-Container {
-            width: 100px; 
-            height: 500px; 
-            border: 1px solid #000; 
-            overflow: auto; 
-        }
-        .input_Container{
-            width: 500px; 
-            height: 500px;
-
-        }
-    </style>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description"
+        content="Online JSON Formatter / Beautifier and JSON Validator will format JSON data, and helps to validate, convert JSON to XML, JSON to CSV. Save and Share JSON">
+    <meta name="author" content="JsonFormatter">
+    <meta name="keywords"
+        content="json formatter, json beautifier, json validator, online json formatter, json formatter online, json beautify,beautify json, ,format json, jsonlint, JSON Checker, JSON Cleaner, json converter, json format, json online format, format json online">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@jsonformatter">
+    <meta name="twitter:title" content="Best JSON Formatter and JSON Validator: Online JSON Formatter">
+    <meta name="twitter:description"
+        content="Online JSON Formatter / Beautifier and JSON Validator will format JSON data, and helps to validate, convert JSON to XML, JSON to CSV. Save and Share JSON">
+    <meta name="twitter:image" content="https://jsonformatter.org/img/rectlogo.png">
+    <meta name="twitter:url" content="https://jsonformatter.org/">
+    <meta name="twitter:creator" content="@jsonformatter">
+    <meta name="ir-site-verification-token" value="600428248">
+    <meta property="og:title" content="Best JSON Formatter and JSON Validator: Online JSON Formatter">
+    <meta property="og:description"
+        content="Online JSON Formatter / Beautifier and JSON Validator will format JSON data, and helps to validate, convert JSON to XML, JSON to CSV. Save and Share JSON">
+    <meta property="og:image" content="https://jsonformatter.org/img/rectlogo.png">
+    <meta property="og:url" content="https://jsonformatter.org/">
+    <meta property="og:type" content="website">
+    <link rel="canonical" href="https://jsonformatter.org/">
+    <link rel="shortcut icon" type="image/png" href="favicons/img-favicon.png">
+    <title>Best JSON Formatter and JSON Validator: Online JSON Formatter</title>
+    <link href="https://plus.google.com/108734869867956898267/posts" rel="publisher">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="css/css-jsonmain.css" rel="stylesheet">
+    <link rel="preconnect" href="https://a.pub.network/" crossorigin>
+    <link rel="preconnect" href="https://b.pub.network/" crossorigin>
+    <link rel="preconnect" href="https://c.pub.network/" crossorigin>
+    <link rel="preconnect" href="https://d.pub.network/" crossorigin>
+    <link rel="preconnect" href="https://secure.quantserve.com/" crossorigin>
+    <link rel="preconnect" href="https://rules.quantcount.com/" crossorigin>
+    <link rel="preconnect" href="https://pixel.quantserve.com/" crossorigin>
+    <link rel="preconnect" href="https://cmp.quantcast.com/" crossorigin>
+    <link rel="preconnect" href="https://btloader.com/" crossorigin>
+    <link rel="preconnect" href="https://api.btloader.com/" crossorigin>
+    <link rel="preconnect" href="https://confiant-integrations.global.ssl.fastly.net" crossorigin>
+    <link rel="stylesheet" href="https://a.pub.network/jsonformatter-org/cls.css">
+    <script data-cfasync="false"
+        type="text/javascript"> var freestar = freestar || {}; freestar.queue = freestar.queue || []; freestar.config = freestar.config || {}; freestar.config.enabled_slots = []; freestar.initCallback = function () { (freestar.config.enabled_slots.length === 0) ? freestar.initCallbackCalled = false : freestar.newAdSlots(freestar.config.enabled_slots) }</script>
+    <script src="js/jsonformatter-org-pubfig.min.js" data-cfasync="false" async></script>
+    <!--[if lt IE 9]> <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script> <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script> <![endif]-->
 </head>
 
-<body>
-    <h1>BRACES P_0.1</h1>
-    <br>
-    <div ng-controller="jsonController" class="container">
-        <div>
-            <label>
-                Formatting Style:
-                <select ng-model="selectedStyle" ng-change="formatData()">
-                    <option value="2">2 Tab Spacing</option>
-                    <option value="3">3 Tab Spacing</option>
-                    <option value="compact">Compact</option>
-                </select>
-            </label>
-           
-            <br>
-            <textarea ng-model="jsonData" placeholder="Enter JSON data here" class="input_Container" ></textarea>
-            <br>
-            <button ng-click="formatData()">Format JSON</button>
-        </div>
-        <h4>Formatted JSON:</h4>
-        
-        <pre class="output-Container">{{formattedData}}</pre>
+<body><input type="hidden" id="viewname" value="index"><input type="hidden" id="type" value="json">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B5DLV1F39J"></script>
+    <script> window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-B5DLV1F39J');</script>
+    <input id="default_file" type="file" name="userfile">
+    <div id="pluswrap" class="hide">
+        <div class="plus"><button class="btn btn-lg btn-success"><i class="fa fa-cog fa-spin"></i></button></div>
     </div>
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header page-scroll"><button type="button" class="navbar-toggle" data-toggle="collapse"
+                    data-target="#bs-example-navbar-collapse-1"><span class="sr-only">Toggle navigation</span> <span
+                        class="icon-bar"></span> <span class="icon-bar"></span> <span
+                        class="icon-bar"></span></button><a class="navbar-brand" href="jsonformatter.html"><img
+                        src="images/img-logo.webp" width="249px" height="39px" alt="JSON Formatter"
+                        title="JSON Formatter"></a></div>
 
-    <script>
-        var app = angular.module('jsonApp', []);
-
-        app.controller('jsonController', function($scope) {
-            $scope.selectedStyle = "2";
-
-            $scope.formatData = function() {
-                try {
-                    var parsedData = JSON.parse($scope.jsonData);
-
-                    var spacing = $scope.selectedStyle === "compact" ? null : Number($scope.selectedStyle);
-                    $scope.formattedData = JSON.stringify(parsedData, null, spacing);
-                } catch (error) {
-                    $scope.formattedData = "Invalid JSON: " + error.message;
-                }
-            };
-        });
-    </script>
+        </div>
+    </nav>
+    <div id="flymessage" class="alert alert-danger flyover flyover-bottom">
+        <p> Copied to Clipboard </p>
+    </div>
+    <header>
+        <div class="container container-no-padding">
+            <div class="row" id="headerDiv">
+                <div class="col-sm-8" id="msgDiv" style="float: right;"></div>
+            </div>
+            <div class="row">
+                <div id="inputdiv" class="col-lg-5">
+                    <div id="inputeditor" tabindex="-1" class="jsoneditor-manual"></div>
+                </div>
+                <div class="col-lg-2"><button type="button" class="btn btn-xs btn-outline btn-block"
+                        href="#loadFileDialog" data-toggle="modal" onclick="clearInput('loadFileDialog')"
+                        title="JSON URL or Browse File">Upload Data</button><br><button type="button"
+                        class="btn btn-xs btn-outline btn-block" onclick="validateJSON();"
+                        title="JSON Validator">Validate</button><br>
+                    <div class="form-group"><select class="form-control" id="sel1">
+                            <option value="2" selected>2 Tab Space</option>
+                            <option value="3">3 Tab Space</option>
+                            <option value="4">4 Tab Space</option>
+                        </select></div><button type="button" id="defaultaction" class="btn btn-xs btn-outline btn-block"
+                        onclick="beautifyJSON();" title="JSON Formatter">Format / Beautify</button>
+                    <div align="center" data-freestar-ad="__320x100 __300x250" id="jsonformatter_medrec_middle">
+                        <script data-cfasync="false"
+                            type="text/javascript">freestar.config.enabled_slots.push({ placementName: "jsonformatter_medrec_middle", slotId: "jsonformatter_medrec_middle" });</script>
+                    </div><button type="button" class="btn btn-xs btn-outline btn-block" onclick="minifyJSON();"
+                        title="JSON Minify or JSON Compact">Minify / Compact</button><br>
+                    <div class="dropdown"><button class="btn btn-xs btn-outline btn-block dropdown-toggle" type="button"
+                            data-toggle="dropdown">Convert JSON to<span class="caret"></span></button>
+                        <ul class="btn btn-xs btn-outline btn-block dropdown-menu" style="background:#fff !important">
+                            <li><a href="#" onclick="jsonToxml();">JSON to XML</a></li>
+                            <li><a href="#" onclick="jsonTocsv();">JSON to CSV</a></li>
+                            <li><a href="#" onclick="jsonToyaml();">JSON to YAML</a></li>
+                        </ul>
+                    </div><br><button type="button" class="btn btn-xs btn-outline btn-block hidden-xs"
+                        onclick="download();" title="JSON Download">Download</button><br>
+                    <p class="text-center"><a style="color:black;font-size: 16px;"
+                            href="https://codebeautify.org/blog/json-full-form/" rel="noopener" target="_blank">JSON
+                            Full Form</a></p>
+                </div>
+                <div id="outputdiv" class="col-lg-5">
+                    <div id="outputeditor" tabindex="-1" class="jsoneditor-manual"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div id="loadFileDialog" class="modal" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Load External Data</h4>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="form-group"><input type="text" class="form-control" id="path" placeholder="Enter Url"
+                            autofocus><br><button type="button" class="btn btn-primary btn-md" onclick="loadUrl();">Load
+                            URL</button></div>
+                    <div class="col-lg-12 text-center">
+                        <hr class="star-primary">
+                    </div>
+                    <div class="form-group"><button type="button" class="btn btn-primary btn-md" id="me"
+                            onclick="openFile();">Upload File</button></div>
+                </div>
+                <div class="modal-footer"><button type="button" id="loadFileClose" class="btn btn-default"
+                        data-dismiss="modal">Close</button></div>
+            </div>
+        </div>
+    </div>
+    <div id="saveDialog" class="modal" role="dialog"><input type="hidden" id="id" value="1"><input type="hidden"
+            id="dataUrl" value>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Save Online</h4>
+                </div>
+                <div class="modal-body">
+                    <form name="sentMessage" id="contactForm" novalidate>
+                        <div class="row control-group">
+                            <div class="form-group col-xs-12 floating-label-form-group controls"> <label>Title</label>
+                                <input type="text" class="form-control" placeholder="Title" id="title" required
+                                    data-validation-required-message="Please enter your title">
+                                <p class="help-block text-danger"></p>
+                            </div>
+                        </div>
+                        <div class="row control-group">
+                            <div class="form-group col-xs-12 floating-label-form-group controls"> <label>Tags</label>
+                                <input type="text" class="form-control" placeholder="Tags" id="tags">
+                                <p class="help-block text-danger"></p>
+                            </div>
+                        </div>
+                        <div class="row control-group">
+                            <div class="form-group col-xs-12 floating-label-form-group controls">
+                                <label>Description</label> <textarea rows="5" class="form-control"
+                                    placeholder="Description" id="desc"></textarea>
+                                <p class="help-block text-danger"></p>
+                            </div>
+                        </div><br>
+                        <div class="row control-group">
+                            <div class="form-group col-xs-4"><span class="lead">Link Expiry Time</span></div>
+                            <div class="form-group col-xs-8"> <select class="form-control" id="expiryTime">
+                                    <option value="60">1 Hour</option>
+                                    <option value="480">8 Hour</option>
+                                    <option value="1440" selected>24 Hours</option>
+                                    <option value="10080">7 Days</option>
+                                    <option value="21600">15 Days</option>
+                                    <option value="43200">30 Days</option>
+                                    <option value>Never</option>
+                                </select> </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button type="button" id="btnSave" class="btn btn-default"
+                        data-dismiss="modal" onclick="download();">Download</button><button type="button" id="btnUpdate"
+                        class="btn btn-default" data-dismiss="modal" onclick="update();">Update</button><button
+                        type="button" id="btnSaveAndShare" class="btn btn-default" data-dismiss="modal"
+                        onclick="save();">Save Online</button><button type="button" id="loadSaveClose"
+                        class="btn btn-default" data-dismiss="modal">Close</button></div>
+            </div>
+        </div>
+    </div><button type="button" class="btn btn-info btn-lg hide" data-toggle="modal" data-target="#saveDialog"
+        id="openSave">ErrorDialog</button>
+    <div id="errorDialog" class="modal" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"> <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Message</h4>
+                </div>
+                <div class="modal-body">
+                    <p id="errorMsg"></p>
+                </div>
+                <div class="modal-footer"> <button type="button" class="btn btn-default"
+                        data-dismiss="modal">Close</button> </div>
+            </div>
+        </div>
+    </div><button type="button" id="openError" class="btn btn-info btn-lg hide" data-toggle="modal"
+        data-target="#errorDialog">ErrorDialog</button>
+    <script src="js/3.6.0-jquery.min.js"></script>
+    <script async src="js/js-bootstrap.min.js"></script>
+    <script src="js/js-jsontools-min.js"></script>
+    <script></script>
 </body>
 
 </html>
