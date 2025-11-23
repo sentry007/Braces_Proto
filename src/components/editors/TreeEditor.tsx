@@ -27,7 +27,7 @@ const theme = {
   base0F: '#cc6633',
 };
 
-export function TreeEditor({ value, readOnly = false }: TreeEditorProps) {
+export function TreeEditor({ value }: TreeEditorProps) {
   const data = parseJSON(value);
 
   if (!data) {

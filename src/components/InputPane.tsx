@@ -1,5 +1,4 @@
 import { useEditorStore } from '../lib/store';
-import type { EditorMode } from '../types/index.js';
 import { ModeSelector } from './ui/ModeSelector';
 import { CodeEditor } from './editors/CodeEditor';
 import { TreeEditor } from './editors/TreeEditor';
