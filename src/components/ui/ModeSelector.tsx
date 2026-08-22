@@ -1,35 +1,75 @@
-import type { EditorMode } from '../../types/index.js';
+import { Code2, GitFork, LayoutGrid, FileText, Eye, Split } from 'lucide-react';
+import type { InputEditorMode, OutputEditorMode } from '../../types/index.js';
 
-interface ModeSelectorProps {
-  currentMode: EditorMode;
-  onChange: (mode: EditorMode) => void;
-  label?: string;
+interface InputModeSelectorProps {
+  currentMode: InputEditorMode;
+  onChange: (mode: InputEditorMode) => void;
 }
 
-const modes: { value: EditorMode; label: string; description: string }[] = [
-  { value: 'code', label: 'Code', description: 'Code editor with syntax highlighting' },
-  { value: 'tree', label: 'Tree', description: 'Interactive tree view' },
-  { value: 'form', label: 'Form', description: 'Form-based editor' },
-  { value: 'text', label: 'Text', description: 'Plain text editor' },
-  { value: 'view', label: 'View', description: 'Read-only tree view' },
-  { value: 'preview', label: 'Preview', description: 'Formatted preview' },
+const inputModes: { value: InputEditorMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { value: 'code', label: 'Code', icon: Code2 },
+  { value: 'tree', label: 'Visual Tree', icon: GitFork },
+  { value: 'form', label: 'Form', icon: LayoutGrid },
+  { value: 'text', label: 'Text', icon: FileText },
 ];
 
-export function ModeSelector({ currentMode, onChange, label }: ModeSelectorProps) {
+export function InputModeSelector({ currentMode, onChange }: InputModeSelectorProps) {
   return (
-    <div className="flex items-center gap-2">
-      {label && <span className="text-sm text-gray-400">{label}:</span>}
-      <select
-        value={currentMode}
-        onChange={(e) => onChange(e.target.value as EditorMode)}
-        className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 focus:outline-none focus:border-blue-500 cursor-pointer"
-      >
-        {modes.map((mode) => (
-          <option key={mode.value} value={mode.value} title={mode.description}>
-            {mode.label}
-          </option>
-        ))}
-      </select>
+    <div className="inline-flex p-0.5 bg-gray-900/90 border border-gray-700/80 rounded-lg">
+      {inputModes.map((mode) => {
+        const Icon = mode.icon;
+        const isActive = currentMode === mode.value;
+        return (
+          <button
+            key={mode.value}
+            onClick={() => onChange(mode.value)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+              isActive
+                ? 'bg-blue-600 text-white shadow-sm font-semibold'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{mode.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+interface OutputModeSelectorProps {
+  currentMode: OutputEditorMode;
+  onChange: (mode: OutputEditorMode) => void;
+}
+
+const outputModes: { value: OutputEditorMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { value: 'code', label: 'Code', icon: Code2 },
+  { value: 'preview', label: 'Preview / Table', icon: Eye },
+  { value: 'diff', label: 'Diff View', icon: Split },
+];
+
+export function OutputModeSelector({ currentMode, onChange }: OutputModeSelectorProps) {
+  return (
+    <div className="inline-flex p-0.5 bg-gray-900/90 border border-gray-700/80 rounded-lg">
+      {outputModes.map((mode) => {
+        const Icon = mode.icon;
+        const isActive = currentMode === mode.value;
+        return (
+          <button
+            key={mode.value}
+            onClick={() => onChange(mode.value)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+              isActive
+                ? 'bg-purple-600 text-white shadow-sm font-semibold'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{mode.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

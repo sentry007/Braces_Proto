@@ -1,18 +1,40 @@
 import { useEditorStore } from '../lib/store';
-import { ModeSelector } from './ui/ModeSelector';
+import { InputModeSelector } from './ui/ModeSelector';
 import { CodeEditor } from './editors/CodeEditor';
 import { TreeEditor } from './editors/TreeEditor';
 import { FormEditor } from './editors/FormEditor';
 import { TextView } from './editors/TextView';
-import { PreviewView } from './editors/PreviewView';
+import { FileJson } from 'lucide-react';
 
 export function InputPane() {
   const {
     inputContent,
     inputMode,
+    inputFormat,
+    isDarkMode,
     setInputContent,
     setInputMode,
   } = useEditorStore();
+
+  const lineCount = inputContent ? inputContent.split('\n').length : 0;
+  const charCount = inputContent.length;
+  const sizeKB = (charCount / 1024).toFixed(1);
+
+  const getLanguageForFormat = () => {
+    switch (inputFormat) {
+      case 'json':
+      case 'toon':
+        return 'json';
+      case 'xml':
+        return 'xml';
+      case 'yaml':
+        return 'yaml';
+      case 'toml':
+        return 'ini';
+      default:
+        return 'json';
+    }
+  };
 
   const renderEditor = () => {
     switch (inputMode) {
@@ -21,6 +43,8 @@ export function InputPane() {
           <CodeEditor
             value={inputContent}
             onChange={setInputContent}
+            language={getLanguageForFormat()}
+            theme={isDarkMode ? 'vs-dark' : 'light'}
           />
         );
       case 'tree':
@@ -34,31 +58,42 @@ export function InputPane() {
             onChange={setInputContent}
           />
         );
-      case 'view':
-        return <TreeEditor value={inputContent} readOnly />;
-      case 'preview':
-        return <PreviewView value={inputContent} />;
       default:
         return (
           <CodeEditor
             value={inputContent}
             onChange={setInputContent}
+            theme={isDarkMode ? 'vs-dark' : 'light'}
           />
         );
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-        <h2 className="text-sm font-semibold text-gray-200">Input</h2>
-        <ModeSelector
+    <div className="flex flex-col h-full bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden shadow-lg">
+      {/* Pane Header */}
+      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-gray-800/80 border-b border-gray-800 gap-2">
+        <div className="flex items-center gap-2">
+          <FileJson className="w-4 h-4 text-blue-400" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-200">
+            Input Payload
+          </h2>
+          <span className="px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded uppercase">
+            {inputFormat}
+          </span>
+          <span className="text-[11px] text-gray-400 hidden sm:inline font-mono">
+            ({lineCount} lines • {sizeKB} KB)
+          </span>
+        </div>
+
+        <InputModeSelector
           currentMode={inputMode}
           onChange={setInputMode}
-          label="Mode"
         />
       </div>
-      <div className="flex-1 overflow-hidden">
+
+      {/* Editor Surface */}
+      <div className="flex-1 overflow-hidden relative">
         {renderEditor()}
       </div>
     </div>

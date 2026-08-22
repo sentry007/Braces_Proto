@@ -15,9 +15,9 @@ export function CodeEditor({
   language = 'json',
   theme = 'vs-dark',
 }: CodeEditorProps) {
-  const handleEditorChange = (value: string | undefined) => {
-    if (onChange && value !== undefined) {
-      onChange(value);
+  const handleEditorChange = (val: string | undefined) => {
+    if (onChange && val !== undefined) {
+      onChange(val);
     }
   };
 
@@ -30,14 +30,14 @@ export function CodeEditor({
         onChange={handleEditorChange}
         theme={theme}
         loading={
-          <div className="flex items-center justify-center h-full bg-gray-900 text-gray-400">
-            Loading editor...
+          <div className="flex items-center justify-center h-full bg-gray-900 text-gray-400 text-xs">
+            Loading Monaco editor...
           </div>
         }
         options={{
           readOnly,
           minimap: { enabled: false },
-          fontSize: 14,
+          fontSize: 13,
           lineNumbers: 'on',
           scrollBeyondLastLine: false,
           automaticLayout: true,
@@ -45,6 +45,13 @@ export function CodeEditor({
           wordWrap: 'on',
           formatOnPaste: true,
           formatOnType: true,
+          renderLineHighlight: 'all',
+          cursorBlinking: 'smooth',
+          smoothScrolling: true,
+          bracketPairColorization: {
+            enabled: true,
+          },
+          padding: { top: 12, bottom: 12 },
         }}
       />
     </div>
