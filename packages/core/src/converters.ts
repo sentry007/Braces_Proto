@@ -3,8 +3,8 @@ import Papa from 'papaparse';
 import yaml from 'js-yaml';
 import * as TOML from '@iarna/toml';
 import { encode as encodeTOON, decode as decodeTOON } from '@toon-format/toon';
-import { parseJSON } from './json-validator';
-import type { ConversionFormat } from '../types/index.js';
+import { parseJSON } from './validator';
+import type { ConversionFormat } from './types';
 
 /**
  * Converts JSON string to XML format

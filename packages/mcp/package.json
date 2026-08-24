@@ -1,0 +1,40 @@
+{
+  "name": "braces-mcp",
+  "version": "2.1.0",
+  "description": "Model Context Protocol (MCP) server for Braces Reborn: polyglot conversion, JSON repair, schema generation, and token optimization",
+  "main": "dist/index.js",
+  "bin": {
+    "braces-mcp": "./bin/braces-mcp.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "start": "node bin/braces-mcp.js",
+    "test": "node test/mcp.test.mjs"
+  },
+  "dependencies": {
+    "@braces/core": "*",
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsup": "^8.4.0",
+    "typescript": "~5.9.3"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "json",
+    "repair",
+    "toon",
+    "yaml",
+    "converter",
+    "ai",
+    "llm",
+    "claude",
+    "cursor"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,143 @@
+{
+  "name": "braces-vscode",
+  "displayName": "Braces Reborn: Polyglot JSON Suite & AI Token Optimizer",
+  "description": "Visual JSON inspection, bidirectional conversions (TOON, YAML, XML, CSV, TOML), heuristic auto-repair, schema generation (TypeScript, Zod, JSON Schema), and LLM token optimization.",
+  "version": "2.1.0",
+  "publisher": "sentry007",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Formatters",
+    "Linters",
+    "Programming Languages",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "tsup src/extension.ts --format cjs --external vscode",
+    "dev": "tsup src/extension.ts --format cjs --external vscode --watch",
+    "package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@braces/core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
+    "tsup": "^8.4.0",
+    "typescript": "~5.9.3"
+  },
+  "activationEvents": [
+    "onLanguage:json",
+    "onLanguage:jsonc",
+    "onLanguage:yaml",
+    "onLanguage:toml",
+    "onLanguage:xml"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "braces.repairJSON",
+        "title": "Braces: Auto-Repair Broken/Dirty JSON",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.formatJSON",
+        "title": "Braces: Format / Beautify JSON",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.minifyJSON",
+        "title": "Braces: Minify JSON",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.convertToTOON",
+        "title": "Braces: Convert to TOON (LLM Token-Oriented Object Notation)",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.convertToYAML",
+        "title": "Braces: Convert to YAML",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.convertToXML",
+        "title": "Braces: Convert to XML",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.convertToCSV",
+        "title": "Braces: Convert to CSV",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.convertToTOML",
+        "title": "Braces: Convert to TOML",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.generateTypeScript",
+        "title": "Braces: Generate TypeScript Types / Interfaces",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.generateZod",
+        "title": "Braces: Generate Zod Validation Schema",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.generateJSONSchema",
+        "title": "Braces: Generate JSON Schema (Draft 2020-12)",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.generateMarkdownTable",
+        "title": "Braces: Generate Markdown Table",
+        "category": "Braces"
+      },
+      {
+        "command": "braces.optimizeTokens",
+        "title": "Braces: Optimize for AI Context (Copy TOON to Clipboard)",
+        "category": "Braces"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceExtname == .json || resourceExtname == .jsonc || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .toml || resourceExtname == .xml",
+          "command": "braces.repairJSON",
+          "group": "1_braces@1"
+        },
+        {
+          "when": "resourceExtname == .json || resourceExtname == .jsonc",
+          "command": "braces.optimizeTokens",
+          "group": "1_braces@2"
+        },
+        {
+          "when": "resourceExtname == .json || resourceExtname == .jsonc",
+          "command": "braces.convertToTOON",
+          "group": "2_braces_conversions@1"
+        },
+        {
+          "when": "resourceExtname == .json || resourceExtname == .jsonc",
+          "command": "braces.convertToYAML",
+          "group": "2_braces_conversions@2"
+        },
+        {
+          "when": "resourceExtname == .json || resourceExtname == .jsonc",
+          "command": "braces.generateTypeScript",
+          "group": "3_braces_gen@1"
+        },
+        {
+          "when": "resourceExtname == .json || resourceExtname == .jsonc",
+          "command": "braces.generateZod",
+          "group": "3_braces_gen@2"
+        }
+      ]
+    }
+  }
+}

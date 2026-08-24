@@ -15,8 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../lib/store';
-import { validateJSON } from '../lib/json-validator';
-import { formatJSON, minifyJSON } from '../lib/json-formatter';
+import { validateJSON, formatJSON, minifyJSON } from '@braces/core';
 import { downloadFile, uploadFile, loadFromURL } from '../lib/file-handler';
 import type { IndentSize, ConversionFormat, GeneratorType } from '../types/index.js';
 

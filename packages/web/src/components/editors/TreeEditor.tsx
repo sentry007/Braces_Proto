@@ -15,7 +15,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
-import { parseJSON } from '../../lib/json-validator';
+import { parseJSON } from '@braces/core';
 import { useEditorStore } from '../../lib/store';
 import type { JSONValueType } from '../../types/index.js';
 

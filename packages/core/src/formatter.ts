@@ -1,10 +1,10 @@
-import type { IndentSize } from '../types/index.js';
-import { parseJSON } from './json-validator';
+import type { IndentSize } from './types';
+import { parseJSON } from './validator';
 
 /**
  * Formats/beautifies JSON string with specified indentation
  */
-export function formatJSON(jsonString: string, indentSize: IndentSize = 4): string {
+export function formatJSON(jsonString: string, indentSize: IndentSize = 2): string {
   const parsed = parseJSON(jsonString);
   if (parsed === null) {
     throw new Error('Invalid JSON: Cannot format');
@@ -26,7 +26,7 @@ export function minifyJSON(jsonString: string): string {
 }
 
 /**
- * Compacts JSON by removing unnecessary whitespace while keeping it readable
+ * Compacts JSON by removing unnecessary whitespace
  */
 export function compactJSON(jsonString: string): string {
   return minifyJSON(jsonString);

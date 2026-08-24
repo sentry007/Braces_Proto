@@ -1,13 +1,15 @@
-import { parseJSON } from './json-validator';
+import { parseJSON } from './validator';
 
 /**
  * Capitalizes string for interface/type names
  */
 function toPascalCase(str: string): string {
-  return str
-    .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
-    .replace(/^[a-z]/, (chr) => chr.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '') || 'Item';
+  return (
+    str
+      .replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+      .replace(/^[a-z]/, (chr) => chr.toUpperCase())
+      .replace(/[^a-zA-Z0-9]/g, '') || 'Item'
+  );
 }
 
 /**
@@ -33,7 +35,6 @@ export function jsonToTypeScript(jsonString: string, rootName: string = 'RootObj
 
     if (Array.isArray(value)) {
       if (value.length === 0) return 'unknown[]';
-      // Infer element type from first item or union
       const elemType = generateType(value[0], `${nameHint}Item`);
       return `${elemType}[]`;
     }
@@ -110,7 +111,7 @@ export function jsonToZod(jsonString: string, rootName: string = 'RootSchema'): 
 }
 
 /**
- * Generates JSON Schema (Draft 7 / 2020-12) from JSON
+ * Generates JSON Schema (Draft 2020-12) from JSON
  */
 export function jsonToJSONSchema(jsonString: string, title: string = 'GeneratedSchema'): string {
   const parsed = parseJSON(jsonString);

@@ -6,12 +6,17 @@ import type {
   ConversionFormat,
   OutputTarget,
   TokenStats,
-} from '../types/index.js';
-import { calculateTokenStats } from './token-counter';
-import { repairJSON } from './json-repair';
-import { convertContent } from './json-converter';
-import { formatJSON } from './json-formatter';
-import { jsonToTypeScript, jsonToZod, jsonToJSONSchema, jsonToMarkdownTable } from './schema-generator';
+} from '../types';
+import {
+  calculateTokenStats,
+  repairJSON,
+  convertContent,
+  formatJSON,
+  jsonToTypeScript,
+  jsonToZod,
+  jsonToJSONSchema,
+  jsonToMarkdownTable,
+} from '@braces/core';
 
 const sampleJSON = `{
   "name": "Braces Reborn",

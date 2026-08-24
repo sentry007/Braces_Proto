@@ -1,4 +1,4 @@
-import type { ValidationResult } from '../types/index.js';
+import type { ValidationResult } from './types';
 
 /**
  * Validates JSON string and returns detailed validation result with line/col positions
@@ -20,7 +20,7 @@ export function validateJSON(jsonString: string): ValidationResult {
     if (error instanceof SyntaxError) {
       // Try to extract position from standard error messages
       const match = error.message.match(/position (\d+)/i) || error.message.match(/at line (\d+) column (\d+)/i);
-      
+
       let line: number | undefined;
       let column: number | undefined;
 

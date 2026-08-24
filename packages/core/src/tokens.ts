@@ -1,6 +1,6 @@
-import type { TokenStats } from '../types/index.js';
-import { jsonToTOON, jsonToYAML } from './json-converter';
-import { minifyJSON } from './json-formatter';
+import type { TokenStats } from './types';
+import { jsonToTOON, jsonToYAML } from './converters';
+import { minifyJSON } from './formatter';
 
 /**
  * Estimates token count based on modern BPE tokenization heuristics (cl100k / o200k approximation)
@@ -9,12 +9,11 @@ import { minifyJSON } from './json-formatter';
 export function estimateTokens(text: string): number {
   if (!text || text.length === 0) return 0;
 
-  // BPE-style regex: matches words/contractions, numbers, punctuation, whitespace chunks
-  const tokenRegex = /'s|'t|'re|'ve|'m|'ll|'d|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+/gu;
+  const tokenRegex =
+    /'s|'t|'re|'ve|'m|'ll|'d|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+/gu;
   const matches = text.match(tokenRegex);
-  
+
   if (!matches) {
-    // Fallback: ~3.7 characters per token
     return Math.ceil(text.length / 3.7);
   }
 
@@ -61,9 +60,8 @@ export function calculateTokenStats(jsonString: string): TokenStats {
     minifiedTokens = jsonTokens;
   }
 
-  const savedPercent = jsonTokens > 0
-    ? Math.max(0, Math.round(((jsonTokens - toonTokens) / jsonTokens) * 100))
-    : 0;
+  const savedPercent =
+    jsonTokens > 0 ? Math.max(0, Math.round(((jsonTokens - toonTokens) / jsonTokens) * 100)) : 0;
 
   return {
     jsonTokens,

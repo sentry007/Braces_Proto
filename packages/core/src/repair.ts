@@ -1,15 +1,10 @@
+import type { RepairResult } from './types';
+
 /**
- * Smart heuristic repair for malformed, dirty, or truncated JSON strings
- * Commonly handles outputs from LLMs, Python dict dumps, and developer copy-pastes.
+ * Smart heuristic repair for malformed, dirty, or truncated JSON strings.
+ * Handles LLM output artifacts, Python dict dumps, unquoted keys, single quotes,
+ * trailing commas, and unclosed brackets/braces.
  */
-
-export interface RepairResult {
-  success: boolean;
-  repaired: string;
-  fixes: string[];
-  error?: string;
-}
-
 export function repairJSON(input: string): RepairResult {
   if (!input || input.trim() === '') {
     return {
@@ -54,17 +49,13 @@ export function repairJSON(input: string): RepairResult {
   // 3. Remove single-line and multi-line comments (JSONC to JSON)
   if (/\/\/.*|\/\*[\s\S]*?\*\//.test(text)) {
     text = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-    fixes.push('Removed JavaScript comments');
+    fixes.push('Removed comments');
   }
 
   // 4. Convert single-quoted strings & keys to double quotes while respecting escaped quotes
-  // We match single quotes that look like keys or values
   if (/'/.test(text)) {
-    // Replace single quotes around keys: 'key': -> "key":
     text = text.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'\s*:/g, '"$1":');
-    // Replace single quotes around string values: : 'value' -> : "value"
     text = text.replace(/:\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g, ': "$1"');
-    // Replace single quotes in arrays: ['a', 'b'] -> ["a", "b"]
     text = text.replace(/\[\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g, '["$1"');
     text = text.replace(/,\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g, ', "$1"');
     fixes.push('Converted single quotes to double quotes');

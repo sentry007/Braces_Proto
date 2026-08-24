@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Plus, Trash2, PlusCircle, Check, X, FileEdit } from 'lucide-react';
-import { parseJSON } from '../../lib/json-validator';
+import { parseJSON } from '@braces/core';
 import { useEditorStore } from '../../lib/store';
 
 interface FormEditorProps {

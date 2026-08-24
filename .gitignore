@@ -9,8 +9,10 @@ lerna-debug.log*
 
 node_modules
 dist
+packages/*/dist
 dist-ssr
 *.local
+*.vsix
 nul
 
 # Editor directories and files
