@@ -12,7 +12,7 @@ import {
   jsonToMarkdownTable,
   calculateTokenStats,
   estimateTokens,
-} from '../dist/index.mjs';
+} from '../dist/index.js';
 
 describe('Braces Core Logic Engine', () => {
   const sample = {

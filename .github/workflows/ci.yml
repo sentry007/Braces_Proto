@@ -24,11 +24,11 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Run Core & MCP Unit Tests
-        run: npm test
-
       - name: Build All Workspaces (Core, Web, MCP, VSCode)
         run: npm run build
+
+      - name: Run Core & MCP Unit Tests
+        run: npm test
 
       - name: Package VS Code Extension (.vsix)
         run: |
