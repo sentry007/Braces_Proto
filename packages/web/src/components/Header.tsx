@@ -5,6 +5,8 @@ import {
   Moon,
   Github,
   RotateCcw,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import { useEditorStore } from '../lib/store';
 
@@ -15,6 +17,10 @@ export function Header() {
     toggleDarkMode,
     clearAll,
     loadSample,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = useEditorStore();
 
   return (
@@ -66,6 +72,27 @@ export function Header() {
 
         {/* Global Controls & Theme */}
         <div className="flex items-center gap-2">
+          {/* Undo / Redo */}
+          <div className="flex items-center bg-gray-800/80 border border-gray-700/80 rounded-lg p-0.5">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              className="p-1.5 text-gray-400 hover:text-white disabled:text-gray-600 disabled:hover:bg-transparent rounded transition-colors"
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+            <div className="h-3.5 w-px bg-gray-700 mx-0.5" />
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              className="p-1.5 text-gray-400 hover:text-white disabled:text-gray-600 disabled:hover:bg-transparent rounded transition-colors"
+              title="Redo (Ctrl+Y)"
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <button
             onClick={loadSample}
             className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 rounded-lg text-xs font-medium transition-colors"

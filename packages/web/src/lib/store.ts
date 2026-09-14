@@ -55,15 +55,18 @@ function transformInput(
       }
       return convertContent(input, inputFormat, target.format, indent);
     } else {
+      // Normalize input to JSON first so generators work seamlessly on any input format (YAML, TOML, XML, CSV, TOON)
+      const jsonInput =
+        inputFormat === 'json' ? input : convertContent(input, inputFormat, 'json', indent);
       switch (target.generator) {
         case 'typescript':
-          return jsonToTypeScript(input);
+          return jsonToTypeScript(jsonInput);
         case 'zod':
-          return jsonToZod(input);
+          return jsonToZod(jsonInput);
         case 'json-schema':
-          return jsonToJSONSchema(input);
+          return jsonToJSONSchema(jsonInput);
         case 'markdown-table':
-          return jsonToMarkdownTable(input);
+          return jsonToMarkdownTable(jsonInput);
       }
     }
   } catch {
@@ -76,6 +79,12 @@ interface EditorStore {
   inputContent: string;
   outputContent: string;
 
+  // History for Undo/Redo
+  history: string[];
+  future: string[];
+  canUndo: boolean;
+  canRedo: boolean;
+
   // Editor modes & targets
   inputMode: InputEditorMode;
   outputMode: OutputEditorMode;
@@ -86,7 +95,6 @@ interface EditorStore {
   indentSize: IndentSize;
   isDarkMode: boolean;
   isAutoSync: boolean;
-  schemaContent: string;
 
   // UI & Stats
   isLoading: boolean;
@@ -94,7 +102,8 @@ interface EditorStore {
   tokenStats: TokenStats;
 
   // Actions
-  setInputContent: (content: string) => void;
+  setInputContent: (content: string, recordHistory?: boolean) => void;
+  setInputWithFormat: (content: string, format: ConversionFormat) => void;
   setOutputContent: (content: string) => void;
   setInputMode: (mode: InputEditorMode) => void;
   setOutputMode: (mode: OutputEditorMode) => void;
@@ -108,6 +117,8 @@ interface EditorStore {
   clearAll: () => void;
   loadSample: () => void;
   repairInput: () => { success: boolean; fixes: string[] };
+  undo: () => void;
+  redo: () => void;
 }
 
 const initialTarget: OutputTarget = { kind: 'format', format: 'json' };
@@ -117,6 +128,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   // Initial state
   inputContent: sampleJSON,
   outputContent: initialOutput,
+  history: [],
+  future: [],
+  canUndo: false,
+  canRedo: false,
   inputMode: 'code',
   outputMode: 'code',
   inputFormat: 'json',
@@ -124,14 +139,22 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   indentSize: 2,
   isDarkMode: true,
   isAutoSync: true,
-  schemaContent: '',
   isLoading: false,
   error: null,
   tokenStats: calculateTokenStats(sampleJSON),
 
   // Actions
-  setInputContent: (content) => {
-    const { inputFormat, outputTarget, indentSize, isAutoSync } = get();
+  setInputContent: (content, recordHistory = true) => {
+    const { inputContent, history, inputFormat, outputTarget, indentSize, isAutoSync } = get();
+    if (content === inputContent) return;
+
+    let nextHistory = history;
+    let nextFuture = get().future;
+    if (recordHistory) {
+      nextHistory = [inputContent, ...history.slice(0, 49)];
+      nextFuture = [];
+    }
+
     const stats = calculateTokenStats(content);
 
     let nextOutput = get().outputContent;
@@ -146,6 +169,35 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       inputContent: content,
       outputContent: nextOutput,
       tokenStats: stats,
+      history: nextHistory,
+      future: nextFuture,
+      canUndo: nextHistory.length > 0,
+      canRedo: nextFuture.length > 0,
+    });
+  },
+
+  setInputWithFormat: (content, format) => {
+    const { inputContent, history, outputTarget, indentSize, isAutoSync } = get();
+    const nextHistory = [inputContent, ...history.slice(0, 49)];
+    const stats = calculateTokenStats(content);
+
+    let nextOutput = get().outputContent;
+    if (isAutoSync) {
+      const live = transformInput(content, format, outputTarget, indentSize);
+      if (live || content.trim() === '') {
+        nextOutput = live;
+      }
+    }
+
+    set({
+      inputContent: content,
+      inputFormat: format,
+      outputContent: nextOutput,
+      tokenStats: stats,
+      history: nextHistory,
+      future: [],
+      canUndo: true,
+      canRedo: false,
     });
   },
 
@@ -192,11 +244,17 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
 
-  clearAll: () =>
+  clearAll: () => {
+    const { inputContent, history } = get();
+    const nextHistory = inputContent ? [inputContent, ...history.slice(0, 49)] : history;
     set({
       inputContent: '',
       outputContent: '',
       error: null,
+      history: nextHistory,
+      future: [],
+      canUndo: nextHistory.length > 0,
+      canRedo: false,
       tokenStats: {
         jsonTokens: 0,
         toonTokens: 0,
@@ -204,10 +262,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         minifiedTokens: 0,
         savedPercent: 0,
       },
-    }),
+    });
+  },
 
   loadSample: () => {
-    const { outputTarget, indentSize } = get();
+    const { inputContent, history, outputTarget, indentSize } = get();
+    const nextHistory = [inputContent, ...history.slice(0, 49)];
     const stats = calculateTokenStats(sampleJSON);
     const nextOutput = transformInput(sampleJSON, 'json', outputTarget, indentSize);
 
@@ -217,13 +277,18 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       inputFormat: 'json',
       error: null,
       tokenStats: stats,
+      history: nextHistory,
+      future: [],
+      canUndo: true,
+      canRedo: false,
     });
   },
 
   repairInput: () => {
-    const { inputContent, inputFormat, outputTarget, indentSize } = get();
+    const { inputContent, history, inputFormat, outputTarget, indentSize } = get();
     const result = repairJSON(inputContent);
     if (result.success && result.repaired) {
+      const nextHistory = [inputContent, ...history.slice(0, 49)];
       const stats = calculateTokenStats(result.repaired);
       const nextOutput = transformInput(result.repaired, inputFormat, outputTarget, indentSize);
       set({
@@ -231,9 +296,63 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         outputContent: nextOutput,
         error: null,
         tokenStats: stats,
+        history: nextHistory,
+        future: [],
+        canUndo: true,
+        canRedo: false,
       });
       return { success: true, fixes: result.fixes };
     }
     return { success: false, fixes: result.fixes };
+  },
+
+  undo: () => {
+    const { history, future, inputContent, inputFormat, outputTarget, indentSize, isAutoSync } = get();
+    if (history.length === 0) return;
+    const previous = history[0];
+    const newHistory = history.slice(1);
+    const newFuture = [inputContent, ...future.slice(0, 49)];
+    const stats = calculateTokenStats(previous);
+    let nextOutput = get().outputContent;
+    if (isAutoSync) {
+      const live = transformInput(previous, inputFormat, outputTarget, indentSize);
+      if (live || previous.trim() === '') {
+        nextOutput = live;
+      }
+    }
+    set({
+      inputContent: previous,
+      outputContent: nextOutput,
+      tokenStats: stats,
+      history: newHistory,
+      future: newFuture,
+      canUndo: newHistory.length > 0,
+      canRedo: newFuture.length > 0,
+    });
+  },
+
+  redo: () => {
+    const { history, future, inputContent, inputFormat, outputTarget, indentSize, isAutoSync } = get();
+    if (future.length === 0) return;
+    const next = future[0];
+    const newFuture = future.slice(1);
+    const newHistory = [inputContent, ...history.slice(0, 49)];
+    const stats = calculateTokenStats(next);
+    let nextOutput = get().outputContent;
+    if (isAutoSync) {
+      const live = transformInput(next, inputFormat, outputTarget, indentSize);
+      if (live || next.trim() === '') {
+        nextOutput = live;
+      }
+    }
+    set({
+      inputContent: next,
+      outputContent: nextOutput,
+      tokenStats: stats,
+      history: newHistory,
+      future: newFuture,
+      canUndo: newHistory.length > 0,
+      canRedo: newFuture.length > 0,
+    });
   },
 }));

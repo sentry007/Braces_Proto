@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { Header } from './components/Header';
 import { InputPane } from './components/InputPane';
@@ -7,7 +8,46 @@ import { useEditorStore } from './lib/store';
 import { CheckCircle2, AlertCircle, Cpu } from 'lucide-react';
 
 function App() {
-  const { isDarkMode, error, tokenStats, inputFormat, outputTarget, isAutoSync } = useEditorStore();
+  const {
+    isDarkMode,
+    error,
+    tokenStats,
+    inputFormat,
+    outputTarget,
+    isAutoSync,
+    undo,
+    redo,
+  } = useEditorStore();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Allow native Monaco or input/textarea undo behavior when focused inside them
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.closest('.monaco-editor')
+      ) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          redo();
+        } else {
+          e.preventDefault();
+          undo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   const targetLabel =
     outputTarget.kind === 'format'

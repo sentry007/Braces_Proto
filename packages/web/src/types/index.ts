@@ -35,13 +35,15 @@ export interface EditorState {
   isLoading: boolean;
   error: string | null;
   tokenStats: TokenStats;
-  schemaContent: string;
   isAutoSync: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 // File upload result
 export interface FileUploadResult {
   success: boolean;
   content?: string;
+  format?: ConversionFormat;
   error?: string;
 }

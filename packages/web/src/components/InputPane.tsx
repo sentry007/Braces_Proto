@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { useEditorStore } from '../lib/store';
 import { InputModeSelector } from './ui/ModeSelector';
 import { CodeEditor } from './editors/CodeEditor';
 import { TreeEditor } from './editors/TreeEditor';
 import { FormEditor } from './editors/FormEditor';
 import { TextView } from './editors/TextView';
-import { FileJson } from 'lucide-react';
+import { uploadFile } from '../lib/file-handler';
+import { FileJson, UploadCloud } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function InputPane() {
   const {
@@ -13,8 +16,11 @@ export function InputPane() {
     inputFormat,
     isDarkMode,
     setInputContent,
+    setInputWithFormat,
     setInputMode,
   } = useEditorStore();
+
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   const lineCount = inputContent ? inputContent.split('\n').length : 0;
   const charCount = inputContent.length;
@@ -33,6 +39,40 @@ export function InputPane() {
         return 'ini';
       default:
         return 'json';
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      setIsDraggingFile(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    setIsDraggingFile(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    const result = await uploadFile(file);
+    if (result.success && result.content) {
+      if (result.format) {
+        setInputWithFormat(result.content, result.format);
+        toast.success(`Imported ${file.name} as ${result.format.toUpperCase()}!`);
+      } else {
+        setInputContent(result.content);
+        toast.success(`Imported ${file.name}!`);
+      }
+    } else {
+      toast.error(result.error || 'Failed to import file');
     }
   };
 
@@ -70,7 +110,23 @@ export function InputPane() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden shadow-lg">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="flex flex-col h-full bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden shadow-lg relative"
+    >
+      {/* Drag and Drop Overlay */}
+      {isDraggingFile && (
+        <div className="absolute inset-0 z-50 bg-blue-950/80 backdrop-blur-sm border-2 border-dashed border-blue-400 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-150">
+          <UploadCloud className="w-12 h-12 text-blue-400 animate-bounce mb-3" />
+          <p className="text-base font-bold text-white">Drop data file here</p>
+          <p className="text-xs text-blue-200 mt-1">
+            Supports JSON, YAML, XML, CSV, TOML, and TOON
+          </p>
+        </div>
+      )}
+
       {/* Pane Header */}
       <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-gray-800/80 border-b border-gray-800 gap-2">
         <div className="flex items-center gap-2">

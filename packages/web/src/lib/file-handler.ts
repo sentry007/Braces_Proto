@@ -1,8 +1,21 @@
 import { saveAs } from 'file-saver';
-import type { FileUploadResult } from '../types/index.js';
+import type { FileUploadResult, ConversionFormat } from '../types/index.js';
 
 /**
- * Handles file upload from user's device
+ * Detects ConversionFormat from file name extension
+ */
+export function detectFormatFromFilename(filename: string): ConversionFormat {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.xml')) return 'xml';
+  if (lower.endsWith('.csv')) return 'csv';
+  if (lower.endsWith('.yaml') || lower.endsWith('.yml')) return 'yaml';
+  if (lower.endsWith('.toml')) return 'toml';
+  if (lower.endsWith('.toon')) return 'toon';
+  return 'json';
+}
+
+/**
+ * Handles file upload from user's device with format detection
  */
 export function uploadFile(file: File): Promise<FileUploadResult> {
   return new Promise((resolve) => {
@@ -14,21 +27,15 @@ export function uploadFile(file: File): Promise<FileUploadResult> {
       return;
     }
 
-    if (!file.name.endsWith('.json')) {
-      resolve({
-        success: false,
-        error: 'Please select a JSON file',
-      });
-      return;
-    }
-
+    const format = detectFormatFromFilename(file.name);
     const reader = new FileReader();
 
     reader.onload = (e) => {
-      const content = e.target?.result as string;
+      const content = (e.target?.result as string) || '';
       resolve({
         success: true,
         content,
+        format,
       });
     };
 
@@ -44,7 +51,7 @@ export function uploadFile(file: File): Promise<FileUploadResult> {
 }
 
 /**
- * Loads JSON from a URL
+ * Loads JSON/data from a URL
  */
 export async function loadFromURL(url: string): Promise<FileUploadResult> {
   if (!url || url.trim() === '') {
@@ -65,10 +72,12 @@ export async function loadFromURL(url: string): Promise<FileUploadResult> {
     }
 
     const content = await response.text();
+    const format = detectFormatFromFilename(url);
 
     return {
       success: true,
       content,
+      format,
     };
   } catch (error) {
     return {
@@ -79,7 +88,7 @@ export async function loadFromURL(url: string): Promise<FileUploadResult> {
 }
 
 /**
- * Downloads content as a file
+ * Downloads content as a file with appropriate MIME type
  */
 export function downloadFile(
   content: string,

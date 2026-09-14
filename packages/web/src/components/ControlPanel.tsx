@@ -115,8 +115,13 @@ export function ControlPanel() {
 
     const result = await uploadFile(file);
     if (result.success && result.content) {
-      useEditorStore.getState().setInputContent(result.content);
-      toast.success('File loaded successfully!');
+      if (result.format) {
+        useEditorStore.getState().setInputWithFormat(result.content, result.format);
+        toast.success(`File loaded as ${result.format.toUpperCase()}!`);
+      } else {
+        useEditorStore.getState().setInputContent(result.content);
+        toast.success('File loaded successfully!');
+      }
     } else {
       toast.error(result.error || 'Failed to load file');
     }
@@ -134,8 +139,13 @@ export function ControlPanel() {
 
     const result = await loadFromURL(url);
     if (result.success && result.content) {
-      useEditorStore.getState().setInputContent(result.content);
-      toast.success('Loaded data from URL!');
+      if (result.format) {
+        useEditorStore.getState().setInputWithFormat(result.content, result.format);
+        toast.success(`Loaded payload as ${result.format.toUpperCase()}!`);
+      } else {
+        useEditorStore.getState().setInputContent(result.content);
+        toast.success('Loaded data from URL!');
+      }
       setShowUrlDialog(false);
       setUrl('');
     } else {
