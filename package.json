@@ -13,7 +13,7 @@
     "build:mcp": "npm run build --workspace=braces-mcp",
     "build:vscode": "npm run build --workspace=braces-vscode",
     "build": "npm run build:core && npm run build:web && npm run build:mcp && npm run build:vscode",
-    "test": "npm run test --workspace=@braces/core",
+    "test": "npm run test --workspace=@braces/core && npm run test --workspace=braces-mcp",
     "lint": "eslint packages/web/src"
   },
   "devDependencies": {
