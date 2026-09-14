@@ -46,7 +46,7 @@ describe('Braces Core Logic Engine', () => {
     });
   });
 
-  describe('Heuristic JSON Repair Engine', () => {
+  describe('AST JSON Repair Engine', () => {
     it('repairs unquoted keys, single quotes, and python literals', () => {
       const dirty = `{
         name: 'Dirty Payload',
@@ -63,13 +63,38 @@ describe('Braces Core Logic Engine', () => {
       assert.deepStrictEqual(parsed.tags, ['one', 'two']);
     });
 
-    it('closes unclosed brackets and braces', () => {
+    it('closes unclosed brackets and braces in proper LIFO order', () => {
       const truncated = '{"user": {"name": "Alice", "items": [1, 2, 3';
       const res = repairJSON(truncated);
       assert.strictEqual(res.success, true);
       const parsed = JSON.parse(res.repaired);
       assert.strictEqual(parsed.user.name, 'Alice');
       assert.deepStrictEqual(parsed.user.items, [1, 2, 3]);
+    });
+
+    it('correctly repairs truncated nested array-of-objects without syntax errors', () => {
+      const truncatedArray = '[{"id": 1, "title": "First"}, {"id": 2, "title": "Second"';
+      const res = repairJSON(truncatedArray);
+      assert.strictEqual(res.success, true);
+      const parsed = JSON.parse(res.repaired);
+      assert.strictEqual(parsed.length, 2);
+      assert.strictEqual(parsed[1].title, 'Second');
+    });
+
+    it('preserves keywords and literals inside string values', () => {
+      const literalInString = '{ "note": "There is None here and it is True" }';
+      const res = repairJSON(literalInString);
+      assert.strictEqual(res.success, true);
+      const parsed = JSON.parse(res.repaired);
+      assert.strictEqual(parsed.note, 'There is None here and it is True');
+    });
+
+    it('strips markdown code blocks', () => {
+      const md = '```json\n{"status": "ok"}\n```';
+      const res = repairJSON(md);
+      assert.strictEqual(res.success, true);
+      const parsed = JSON.parse(res.repaired);
+      assert.strictEqual(parsed.status, 'ok');
     });
   });
 
@@ -104,17 +129,26 @@ describe('Braces Core Logic Engine', () => {
   });
 
   describe('Schema & Code Generators', () => {
-    it('generates TypeScript interfaces', () => {
-      const ts = jsonToTypeScript(jsonStr, 'UserConfig');
-      assert.ok(ts.includes('export interface UserConfig'));
+    it('generates TypeScript interfaces with multi-element optional keys', () => {
+      const arrayJson = JSON.stringify([
+        { id: 1, name: 'Alice' },
+        { id: 2, name: 'Bob', email: 'bob@example.com' },
+      ]);
+      const ts = jsonToTypeScript(arrayJson, 'User');
+      assert.ok(ts.includes('export interface UserItem'));
+      assert.ok(ts.includes('id: number;'));
       assert.ok(ts.includes('name: string;'));
-      assert.ok(ts.includes('active: boolean;'));
+      assert.ok(ts.includes('email?: string;'));
     });
 
-    it('generates Zod schema', () => {
-      const zod = jsonToZod(jsonStr, 'UserConfigSchema');
+    it('generates Zod schema with optional fields', () => {
+      const arrayJson = JSON.stringify([
+        { id: 1, name: 'Alice' },
+        { id: 2, name: 'Bob', email: 'bob@example.com' },
+      ]);
+      const zod = jsonToZod(arrayJson, 'UserSchema');
       assert.ok(zod.includes("import { z } from 'zod';"));
-      assert.ok(zod.includes('export const UserConfigSchema = z.object({'));
+      assert.ok(zod.includes('email: z.string().optional()'));
     });
 
     it('generates JSON Schema Draft 2020-12', () => {
