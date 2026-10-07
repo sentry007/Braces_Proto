@@ -1,304 +1,154 @@
-import { useState, useMemo } from 'react';
-import { Plus, Trash2, PlusCircle, Check, X, FileEdit } from 'lucide-react';
-import { parseJSON } from '@braces/core';
+import { useMemo, useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { tryParseJSON } from 'bracer';
 import { useEditorStore } from '../../lib/store';
+import { addChild, deleteAtPath, isContainer, setAtPath, type JSONPath } from '../../lib/json-utils';
 
-interface FormEditorProps {
-  value: string;
-  readOnly?: boolean;
+const fieldInput =
+  'h-[30px] w-full min-w-0 rounded-md border border-line-strong bg-bg px-2.5 font-mono text-[12.5px] outline-none focus:border-primary';
+
+function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" aria-label={label} title={label} onClick={onClick} className="btn btn-icon h-[30px]">
+      {children}
+    </button>
+  );
 }
 
-type JSONContainer = Record<string, unknown> | unknown[];
-
-function cloneDeep<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
-}
-
-let keyCounter = 1;
-function generateUniqueKey(prefix: string = 'field'): string {
-  return `${prefix}_${keyCounter++}`;
-}
-
-export function FormEditor({ value, readOnly = false }: FormEditorProps) {
+export function FormEditor({ value, readOnly = false }: { value: string; readOnly?: boolean }) {
   const { setInputContent, indentSize } = useEditorStore();
-  const data = useMemo(() => parseJSON(value), [value]);
-  const [addingKeyToPath, setAddingKeyToPath] = useState<string | null>(null);
-  const [newKeyName, setNewKeyName] = useState('');
+  const parsed = useMemo(() => tryParseJSON(value), [value]);
+  const [addingAt, setAddingAt] = useState<string | null>(null);
+  const [newKey, setNewKey] = useState('');
 
-  const updateRoot = (newData: unknown) => {
-    if (!readOnly) {
-      setInputContent(JSON.stringify(newData, null, indentSize));
-    }
-  };
-
-  if (data === null || data === undefined || typeof data !== 'object') {
+  if (!parsed.ok || !isContainer(parsed.value)) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gray-900/50">
-        <FileEdit className="w-12 h-12 text-gray-500 mb-3" />
-        <p className="text-gray-400 font-medium">Form Editor requires a JSON Object or Array</p>
-        <p className="text-xs text-gray-500 mt-1">Please provide valid structured JSON in Code mode.</p>
+      <div className="flex h-full items-center justify-center p-8 text-center text-muted">
+        The form shows a valid JSON object or array. Fix the input in the Code view first.
       </div>
     );
   }
-
-  const handleFieldChange = (path: (string | number)[], newVal: unknown) => {
-    if (readOnly) return;
-    const clone = cloneDeep(data) as JSONContainer;
-    let curr: Record<string, unknown> | unknown[] = clone;
-    for (let i = 0; i < path.length - 1; i++) {
-      curr = (curr as Record<string | number, unknown>)[path[i]] as JSONContainer;
-    }
-    const last = path[path.length - 1];
-    (curr as Record<string | number, unknown>)[last] = newVal;
-    updateRoot(clone);
+  const data = parsed.value;
+  const update = (next: unknown) => {
+    if (!readOnly) setInputContent(JSON.stringify(next, null, indentSize));
   };
 
-  const handleDeleteField = (path: (string | number)[]) => {
-    if (readOnly) return;
-    const clone = cloneDeep(data) as JSONContainer;
-    let curr: Record<string, unknown> | unknown[] = clone;
-    for (let i = 0; i < path.length - 1; i++) {
-      curr = (curr as Record<string | number, unknown>)[path[i]] as JSONContainer;
-    }
-    const last = path[path.length - 1];
-    if (Array.isArray(curr)) {
-      curr.splice(Number(last), 1);
-    } else {
-      delete (curr as Record<string, unknown>)[String(last)];
-    }
-    updateRoot(clone);
-  };
+  const renderField = (key: string | number, val: unknown, parent: JSONPath): React.ReactNode => {
+    const path = [...parent, key];
+    const id = path.join('\u0000');
+    const label = typeof key === 'number' ? `Item ${key + 1}` : key;
 
-  const handleAddField = (path: (string | number)[], isArray: boolean) => {
-    if (readOnly) return;
-    const clone = cloneDeep(data) as JSONContainer;
-    let curr: Record<string, unknown> | unknown[] = clone;
-    for (const p of path) {
-      curr = (curr as Record<string | number, unknown>)[p] as JSONContainer;
-    }
-    if (isArray && Array.isArray(curr)) {
-      curr.push('new_item');
-    } else if (!Array.isArray(curr) && typeof curr === 'object' && curr !== null) {
-      const key = newKeyName.trim() || generateUniqueKey('field');
-      (curr as Record<string, unknown>)[key] = 'value';
-    }
-    updateRoot(clone);
-    setAddingKeyToPath(null);
-    setNewKeyName('');
-  };
-
-  const renderFieldNode = (
-    keyOrIndex: string | number,
-    val: unknown,
-    path: (string | number)[],
-    isParentArray: boolean
-  ) => {
-    const fieldPath = [...path, keyOrIndex];
-    const pathString = fieldPath.join('.');
-    const isObject = typeof val === 'object' && val !== null && !Array.isArray(val);
-    const isArray = Array.isArray(val);
-
-    if (isObject) {
+    if (isContainer(val)) {
+      const isArray = Array.isArray(val);
+      const entries = isArray ? val.map((v, i) => [i, v] as const) : Object.entries(val);
       return (
-        <div key={pathString} className="mb-4 bg-gray-800/40 border border-gray-700/60 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3 border-b border-gray-700/40 pb-2">
-            <span className="text-sm font-semibold text-blue-400 flex items-center gap-2">
-              📂 {String(keyOrIndex)}
-              <span className="text-[11px] font-normal text-gray-500">
-                ({Object.keys(val as Record<string, unknown>).length} properties)
-              </span>
-            </span>
+        <fieldset key={id} className="rounded-lg border border-line bg-surface">
+          <legend className="sr-only">{label}</legend>
+          <div className="flex h-10 items-center gap-2 border-b border-line pr-1.5 pl-3">
+            <span className="font-medium">{label}</span>
+            <span className="font-mono text-xs text-muted">{isArray ? `${entries.length} items` : `${entries.length} fields`}</span>
             {!readOnly && (
-              <div className="flex items-center gap-2">
+              <div className="ml-auto flex items-center">
                 <button
-                  onClick={() => setAddingKeyToPath(pathString)}
-                  className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-medium px-2 py-0.5 bg-blue-950/60 border border-blue-800 rounded transition-colors"
+                  type="button"
+                  className="btn btn-ghost h-7 text-xs"
+                  onClick={() => (isArray ? update(addChild(data, path)) : setAddingAt(id))}
                 >
-                  <Plus className="w-3 h-3" /> Add Field
+                  <Plus />
+                  {isArray ? 'Add item' : 'Add field'}
                 </button>
-                <button
-                  onClick={() => handleDeleteField(fieldPath)}
-                  className="text-gray-500 hover:text-red-400 p-1 transition-colors"
-                  title="Delete object"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <IconButton label={`Delete ${label}`} onClick={() => update(deleteAtPath(data, path))}>
+                  <Trash2 />
+                </IconButton>
               </div>
             )}
           </div>
-
-          {addingKeyToPath === pathString && (
-            <div className="flex items-center gap-2 mb-3 p-2 bg-gray-900/90 rounded border border-blue-500/50">
-              <input
-                type="text"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                placeholder="Field name..."
-                autoFocus
-                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-blue-500 flex-1"
-              />
-              <button
-                onClick={() => handleAddField(fieldPath, false)}
-                className="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs flex items-center gap-1"
-              >
-                <Check className="w-3 h-3" /> Save
-              </button>
-              <button
-                onClick={() => {
-                  setAddingKeyToPath(null);
-                  setNewKeyName('');
+          <div className="flex flex-col gap-2 p-3">
+            {addingAt === id && (
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  update(addChild(data, path, newKey));
+                  setAddingAt(null);
+                  setNewKey('');
                 }}
-                className="p-1 text-gray-400 hover:text-red-400"
               >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {Object.entries(val as Record<string, unknown>).map(([k, v]) =>
-              renderFieldNode(k, v, fieldPath, false)
+                <input
+                  autoFocus
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  placeholder="Field name"
+                  aria-label="New field name"
+                  className={fieldInput}
+                />
+                <button type="submit" className="btn btn-primary">Add</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setAddingAt(null)}>Cancel</button>
+              </form>
             )}
+            {entries.map(([k, v]) => renderField(k, v, path))}
+            {entries.length === 0 && <span className="text-xs text-muted">Empty</span>}
           </div>
-        </div>
+        </fieldset>
       );
     }
 
-    if (isArray) {
-      return (
-        <div key={pathString} className="mb-4 bg-gray-800/30 border border-gray-700/50 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3 border-b border-gray-700/40 pb-2">
-            <span className="text-sm font-semibold text-purple-400 flex items-center gap-2">
-              📋 {String(keyOrIndex)}
-              <span className="text-[11px] font-normal text-gray-500">
-                ({(val as unknown[]).length} items)
-              </span>
-            </span>
-            {!readOnly && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleAddField(fieldPath, true)}
-                  className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 font-medium px-2 py-0.5 bg-purple-950/60 border border-purple-800 rounded transition-colors"
-                >
-                  <Plus className="w-3 h-3" /> Append Item
-                </button>
-                <button
-                  onClick={() => handleDeleteField(fieldPath)}
-                  className="text-gray-500 hover:text-red-400 p-1 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            {(val as unknown[]).map((item, idx) => renderFieldNode(idx, item, fieldPath, true))}
-          </div>
-        </div>
-      );
-    }
-
-    const valType = typeof val;
-
+    const inputId = `field-${id}`;
     return (
-      <div
-        key={pathString}
-        className="flex items-center gap-3 p-2 bg-gray-900/60 border border-gray-800 hover:border-gray-700 rounded-md transition-colors"
-      >
-        <div className="w-1/3 flex items-center gap-1.5 overflow-hidden">
-          <span
-            className={`text-xs font-mono font-medium truncate ${
-              isParentArray ? 'text-purple-400' : 'text-blue-300'
-            }`}
-          >
-            {isParentArray ? `[${keyOrIndex}]` : String(keyOrIndex)}
-          </span>
-          <span className="text-[10px] text-gray-500 font-mono">
-            {val === null ? 'null' : valType}
-          </span>
-        </div>
-
-        <div className="flex-1">
-          {valType === 'boolean' ? (
-            <button
-              disabled={readOnly}
-              onClick={() => handleFieldChange(fieldPath, !val)}
-              className={`px-3 py-1 text-xs font-semibold rounded border transition-colors ${
-                val
-                  ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800 hover:bg-emerald-900'
-                  : 'bg-rose-950/80 text-rose-400 border-rose-800 hover:bg-rose-900'
-              }`}
-            >
-              {String(val)}
-            </button>
-          ) : val === null ? (
-            <span className="text-xs text-gray-500 italic">null</span>
-          ) : (
+      <div key={id} className="grid grid-cols-[minmax(80px,30%)_1fr_auto] items-center gap-3">
+        <label htmlFor={inputId} className="truncate font-mono text-[12.5px] text-syn-key">
+          {label}
+        </label>
+        {typeof val === 'boolean' ? (
+          <label className="flex h-[30px] items-center gap-2 text-[13px]">
             <input
-              type={valType === 'number' ? 'number' : 'text'}
-              value={String(val ?? '')}
-              readOnly={readOnly}
-              onChange={(e) => {
-                const updated =
-                  valType === 'number'
-                    ? isNaN(Number(e.target.value))
-                      ? 0
-                      : Number(e.target.value)
-                    : e.target.value;
-                handleFieldChange(fieldPath, updated);
-              }}
-              className="w-full px-2.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-gray-200 focus:outline-none focus:border-blue-500 font-mono"
+              id={inputId}
+              type="checkbox"
+              checked={val}
+              disabled={readOnly}
+              onChange={() => update(setAtPath(data, path, !val))}
+              className="size-4 accent-[var(--primary)]"
             />
-          )}
-        </div>
-
-        {!readOnly && (
-          <button
-            onClick={() => handleDeleteField(fieldPath)}
-            className="text-gray-500 hover:text-red-400 p-1 transition-colors"
-            title="Delete field"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+            <span className="font-mono text-syn-keyword">{String(val)}</span>
+          </label>
+        ) : val === null ? (
+          <span id={inputId} className="font-mono text-[12.5px] text-syn-keyword">null</span>
+        ) : (
+          <input
+            id={inputId}
+            type={typeof val === 'number' ? 'number' : 'text'}
+            value={String(val)}
+            readOnly={readOnly}
+            onChange={(e) => {
+              const raw = e.target.value;
+              update(setAtPath(data, path, typeof val === 'number' ? (isNaN(Number(raw)) ? 0 : Number(raw)) : raw));
+            }}
+            className={`${fieldInput} ${typeof val === 'number' ? 'text-syn-number' : 'text-fg'}`}
+          />
+        )}
+        {readOnly ? (
+          <span />
+        ) : (
+          <IconButton label={`Delete ${label}`} onClick={() => update(deleteAtPath(data, path))}>
+            <Trash2 />
+          </IconButton>
         )}
       </div>
     );
   };
 
+  const rootEntries = Array.isArray(data) ? data.map((v, i) => [i, v] as const) : Object.entries(data);
   return (
-    <div className="h-full overflow-y-auto p-4 bg-gray-900/90 space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-gray-800">
+    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
+      {rootEntries.map(([k, v]) => renderField(k, v, []))}
+      {!readOnly && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-200">Interactive Form Editor</h3>
-          <p className="text-xs text-gray-400">Live schema-aware two-way reactive property editor</p>
-        </div>
-        {!readOnly && typeof data === 'object' && data !== null && (
-          <button
-            onClick={() => {
-              const clone = cloneDeep(data) as JSONContainer;
-              if (Array.isArray(clone)) {
-                clone.push('new_item');
-              } else {
-                const newKey = generateUniqueKey('newField');
-                (clone as Record<string, unknown>)[newKey] = 'value';
-              }
-              updateRoot(clone);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-medium transition-colors"
-          >
-            <PlusCircle className="w-3.5 h-3.5" /> Add Root Property
+          <button type="button" className="btn btn-ghost" onClick={() => update(addChild(data, []))}>
+            <Plus />
+            {Array.isArray(data) ? 'Add item' : 'Add field'}
           </button>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        {Array.isArray(data)
-          ? data.map((item, idx) => renderFieldNode(idx, item, [], true))
-          : Object.entries(data as Record<string, unknown>).map(([k, v]) =>
-              renderFieldNode(k, v, [], false)
-            )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

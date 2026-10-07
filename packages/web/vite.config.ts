@@ -8,4 +8,11 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  worker: {
+    format: 'es',
+  },
+  build: {
+    // Monaco and the tokenizer table are large by nature and load lazily
+    chunkSizeWarningLimit: 4000,
+  },
 })

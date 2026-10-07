@@ -1,24 +1,18 @@
 interface TextViewProps {
   value: string;
-  onChange?: (value: string) => void;
-  readOnly?: boolean;
+  onChange: (value: string) => void;
 }
 
-export function TextView({ value, onChange, readOnly = false }: TextViewProps) {
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (onChange && !readOnly) {
-      onChange(e.target.value);
-    }
-  };
-
+/** Plain textarea: lightweight fallback for very large inputs or quick pastes. */
+export function TextView({ value, onChange }: TextViewProps) {
   return (
     <textarea
       value={value}
-      onChange={handleChange}
-      readOnly={readOnly}
-      className="w-full h-full p-4 font-mono text-sm bg-gray-900 text-gray-100 resize-none focus:outline-none"
-      style={{ tabSize: 2 }}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label="Input text"
       spellCheck={false}
+      className="h-full w-full resize-none bg-surface px-4 py-2.5 font-mono text-[12.5px] leading-5 text-fg outline-none"
+      style={{ tabSize: 2 }}
     />
   );
 }

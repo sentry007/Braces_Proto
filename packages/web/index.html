@@ -1,16 +1,38 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="indigo">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Braces Reborn — Modern Polyglot JSON Suite & Visual Tree Editor</title>
-    <meta name="description" content="Interactive visual drag-and-drop JSON tree editor, polyglot bidirectional converter (XML, YAML, CSV, TOML, TOON), AI token optimizer, and TypeScript/Zod schema generator." />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Bracer: JSON repair, TOON converter and token counter</title>
+    <meta
+      name="description"
+      content="Repair broken LLM JSON, convert between JSON, TOON, YAML, XML, CSV and TOML, generate TypeScript and Zod, and count tokens exactly. Runs entirely in your browser."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="theme-color" content="#0a0a0b" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Bracer: JSON toolkit for LLM workflows" />
+    <meta
+      property="og:description"
+      content="Repair LLM JSON, convert JSON to TOON, YAML, XML, CSV or TOML, and see the exact token cost of your data."
+    />
+    <meta property="og:url" content="https://sentry007.github.io/Braces_Proto/" />
+    <meta name="twitter:card" content="summary" />
+
+    <script>
+      // Apply the saved theme before first paint to avoid a flash of the wrong colors
+      (function () {
+        var theme;
+        try { theme = localStorage.getItem('bracer-theme'); } catch (e) {}
+        if (theme !== 'indigo' && theme !== 'amber' && theme !== 'paper') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'paper' : 'indigo';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
-  <body class="bg-gray-950 text-gray-100 antialiased selection:bg-blue-600 selection:text-white">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

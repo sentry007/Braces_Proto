@@ -1,4 +1,4 @@
-// Re-export all core types from @braces/core
+// Re-export the core types used by the web app
 export type {
   ConversionFormat,
   GeneratorType,
@@ -7,38 +7,18 @@ export type {
   TokenStats,
   RepairResult,
   JSONValueType,
-  ASTNode,
-} from '@braces/core';
+} from 'bracer';
 
-import type { ConversionFormat, GeneratorType, IndentSize, TokenStats } from '@braces/core';
+import type { ConversionFormat, GeneratorType } from 'bracer';
 
-// Web Editor UI modes
+// Web editor UI modes
 export type InputEditorMode = 'code' | 'tree' | 'form' | 'text';
-export type OutputEditorMode = 'code' | 'preview' | 'diff' | 'text';
-export type EditorMode = InputEditorMode | OutputEditorMode;
+export type OutputEditorMode = 'code' | 'preview' | 'diff';
 
-// Active Output Target
+// Active output target
 export type OutputTarget =
   | { kind: 'format'; format: ConversionFormat }
   | { kind: 'generator'; generator: GeneratorType };
-
-// Editor state
-export interface EditorState {
-  inputContent: string;
-  outputContent: string;
-  inputMode: InputEditorMode;
-  outputMode: OutputEditorMode;
-  inputFormat: ConversionFormat;
-  outputTarget: OutputTarget;
-  indentSize: IndentSize;
-  isDarkMode: boolean;
-  isLoading: boolean;
-  error: string | null;
-  tokenStats: TokenStats;
-  isAutoSync: boolean;
-  canUndo: boolean;
-  canRedo: boolean;
-}
 
 // File upload result
 export interface FileUploadResult {

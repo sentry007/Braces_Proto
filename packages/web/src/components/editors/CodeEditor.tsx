@@ -1,59 +1,59 @@
-import Editor from '@monaco-editor/react';
+import Editor, { type OnMount } from '@monaco-editor/react';
+import { monacoTheme } from '../../lib/monaco';
+import { useEditorStore } from '../../lib/store';
+import { EditorLoading } from './EditorLoading';
 
 interface CodeEditorProps {
   value: string;
   onChange?: (value: string) => void;
   readOnly?: boolean;
   language?: string;
-  theme?: 'light' | 'vs-dark';
+  label: string;
+  onMount?: OnMount;
 }
 
-export function CodeEditor({
+export default function CodeEditor({
   value,
   onChange,
   readOnly = false,
   language = 'json',
-  theme = 'vs-dark',
+  label,
+  onMount,
 }: CodeEditorProps) {
-  const handleEditorChange = (val: string | undefined) => {
-    if (onChange && val !== undefined) {
-      onChange(val);
-    }
-  };
+  const theme = useEditorStore((s) => s.theme);
 
   return (
-    <div className="w-full h-full">
-      <Editor
-        height="100%"
-        language={language}
-        value={value}
-        onChange={handleEditorChange}
-        theme={theme}
-        loading={
-          <div className="flex items-center justify-center h-full bg-gray-900 text-gray-400 text-xs">
-            Loading Monaco editor...
-          </div>
-        }
-        options={{
-          readOnly,
-          minimap: { enabled: false },
-          fontSize: 13,
-          lineNumbers: 'on',
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          tabSize: 2,
-          wordWrap: 'on',
-          formatOnPaste: true,
-          formatOnType: true,
-          renderLineHighlight: 'all',
-          cursorBlinking: 'smooth',
-          smoothScrolling: true,
-          bracketPairColorization: {
-            enabled: true,
-          },
-          padding: { top: 12, bottom: 12 },
-        }}
-      />
-    </div>
+    <Editor
+      height="100%"
+      language={language}
+      value={value}
+      onChange={(val) => {
+        if (onChange && val !== undefined) onChange(val);
+      }}
+      onMount={onMount}
+      theme={monacoTheme(theme)}
+      loading={<EditorLoading />}
+      options={{
+        readOnly,
+        ariaLabel: label,
+        minimap: { enabled: false },
+        fontFamily: "'Geist Mono Variable', ui-monospace, monospace",
+        fontSize: 12.5,
+        lineHeight: 20,
+        lineNumbersMinChars: 3,
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        tabSize: 2,
+        wordWrap: 'on',
+        renderLineHighlight: readOnly ? 'none' : 'line',
+        bracketPairColorization: { enabled: false },
+        guides: { indentation: false },
+        overviewRulerLanes: 0,
+        hideCursorInOverviewRuler: true,
+        scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, useShadows: false },
+        padding: { top: 10, bottom: 10 },
+        fixedOverflowWidgets: true,
+      }}
+    />
   );
 }

@@ -1,179 +1,131 @@
-import { useState } from 'react';
-import { useEditorStore } from '../lib/store';
-import { OutputModeSelector } from './ui/ModeSelector';
-import { CodeEditor } from './editors/CodeEditor';
-import { PreviewView } from './editors/PreviewView';
-import { DiffView } from './editors/DiffView';
-import { copyToClipboard, downloadFile } from '../lib/file-handler';
-import { Copy, Check, Download, FileCode, ArrowRight } from 'lucide-react';
+import { Suspense, useMemo, useState } from 'react';
+import { Check, Copy, Download, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { estimateTokens } from 'bracer';
+import { useEditorStore } from '../lib/store';
+import { copyToClipboard, downloadFile } from '../lib/file-handler';
+import { formatBytes, targetBadge, targetInfo } from '../lib/formats';
+import { CodeEditor, DiffView } from './editors/lazy';
+import { EditorLoading } from './editors/EditorLoading';
+import { PreviewView } from './editors/PreviewView';
+import { ErrorBoundary } from './ErrorBoundary';
+import { Tabs } from './ui/Tabs';
+import type { OutputEditorMode } from '../types';
+
+const MODES: { value: OutputEditorMode; label: string }[] = [
+  { value: 'code', label: 'Code' },
+  { value: 'preview', label: 'Preview' },
+  { value: 'diff', label: 'Diff' },
+];
 
 export function OutputPane() {
-  const {
-    inputContent,
-    outputContent,
-    outputMode,
-    outputTarget,
-    isDarkMode,
-    setOutputMode,
-  } = useEditorStore();
-
+  const { inputContent, inputJSON, outputContent, outputError, outputStale, outputMode, outputTarget, tokenStats, setOutputMode } =
+    useEditorStore();
   const [copied, setCopied] = useState(false);
-
-  const lineCount = outputContent ? outputContent.split('\n').length : 0;
-  const charCount = outputContent.length;
-  const sizeKB = (charCount / 1024).toFixed(1);
-
-  const targetLabel =
-    outputTarget.kind === 'format'
-      ? outputTarget.format.toUpperCase()
-      : outputTarget.generator.toUpperCase();
+  const info = targetInfo(outputTarget);
+  const lines = outputContent ? outputContent.split('\n').length : 0;
+  // tokenStats.tokenizer flips once the exact tokenizer loads, so recount then too
+  const outputTokens = useMemo(
+    () => (outputContent && outputContent.length <= 1_000_000 ? estimateTokens(outputContent) : null),
+    [outputContent, tokenStats.tokenizer] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const handleCopy = async () => {
-    if (!outputContent) return;
-    const success = await copyToClipboard(outputContent);
-    if (success) {
+    if (await copyToClipboard(outputContent)) {
       setCopied(true);
-      toast.success('Copied transformed output to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 1500);
     } else {
-      toast.error('Failed to copy');
-    }
-  };
-
-  const handleDownload = () => {
-    if (!outputContent) {
-      toast.error('No output to download');
-      return;
-    }
-    const ext =
-      outputTarget.kind === 'format'
-        ? outputTarget.format === 'toon'
-          ? 'toon'
-          : outputTarget.format
-        : outputTarget.generator === 'typescript' || outputTarget.generator === 'zod'
-        ? 'ts'
-        : outputTarget.generator === 'markdown-table'
-        ? 'md'
-        : 'json';
-
-    downloadFile(outputContent, `transformed_output.${ext}`);
-    toast.success(`Downloaded transformed_output.${ext}`);
-  };
-
-  const getLanguage = () => {
-    if (outputTarget.kind === 'format') {
-      if (outputTarget.format === 'xml') return 'xml';
-      if (outputTarget.format === 'yaml') return 'yaml';
-      if (outputTarget.format === 'toml') return 'ini';
-      if (outputTarget.format === 'csv') return 'plaintext';
-      if (outputTarget.format === 'toon') return 'json';
-      return 'json';
-    } else {
-      if (outputTarget.generator === 'typescript' || outputTarget.generator === 'zod') return 'typescript';
-      if (outputTarget.generator === 'markdown-table') return 'markdown';
-      return 'json';
+      toast.error('Could not copy to the clipboard');
     }
   };
 
   const renderContent = () => {
     if (!outputContent) {
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gray-900/40">
-          <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center text-gray-500 mb-3">
-            <ArrowRight className="w-6 h-6" />
-          </div>
-          <p className="text-gray-400 font-medium text-sm">No output available</p>
-          <p className="text-xs text-gray-500 mt-1 max-w-xs">
-            Type or paste content in the Input pane to see live transformations in real-time.
-          </p>
+        <div className="flex h-full items-center justify-center p-8 text-center text-muted">
+          Paste or type data on the left to see it converted here.
         </div>
       );
     }
-
     switch (outputMode) {
-      case 'code':
-        return (
-          <CodeEditor
-            value={outputContent}
-            readOnly
-            language={getLanguage()}
-            theme={isDarkMode ? 'vs-dark' : 'light'}
-          />
-        );
       case 'preview':
-        return <PreviewView value={outputContent} />;
+        return <PreviewView json={inputJSON} />;
       case 'diff':
         return (
-          <DiffView
-            original={inputContent}
-            modified={outputContent}
-            language={getLanguage()}
-            theme={isDarkMode ? 'vs-dark' : 'light'}
-          />
+          <Suspense fallback={<EditorLoading />}>
+            <DiffView original={inputContent} modified={outputContent} language={info.language} />
+          </Suspense>
         );
       default:
         return (
-          <CodeEditor
-            value={outputContent}
-            readOnly
-            language={getLanguage()}
-            theme={isDarkMode ? 'vs-dark' : 'light'}
-          />
+          <Suspense fallback={<EditorLoading />}>
+            <CodeEditor label="Output" value={outputContent} readOnly language={info.language} />
+          </Suspense>
         );
     }
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden shadow-lg">
-      {/* Pane Header */}
-      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-gray-800/80 border-b border-gray-800 gap-2">
-        <div className="flex items-center gap-2">
-          <FileCode className="w-4 h-4 text-purple-400" />
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-200">
-            Live Output
-          </h2>
-          <span className="px-1.5 py-0.5 text-[10px] font-mono font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30 rounded uppercase">
-            {targetLabel}
+    <section aria-label="Output" className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="flex h-[42px] shrink-0 items-center gap-2 border-b border-line pr-2 pl-3">
+        <h2 className="font-medium">Output</h2>
+        <span className="badge border-positive-edge bg-positive-tint text-positive-fg" data-testid="output-badge">
+          {targetBadge(outputTarget)}
+        </span>
+        <div className="flex-1" />
+        <Tabs label="Output view" value={outputMode} options={MODES} onChange={setOutputMode} />
+        <button
+          type="button"
+          className="btn btn-primary h-7 max-sm:w-[30px] max-sm:justify-center max-sm:px-0"
+          onClick={handleCopy}
+          disabled={!outputContent}
+          aria-label={copied ? 'Copied' : 'Copy output'}
+        >
+          {copied ? <Check /> : <Copy />}
+          <span className="max-sm:hidden">{copied ? 'Copied' : 'Copy'}</span>
+        </button>
+        <button
+          type="button"
+          className="btn btn-icon"
+          disabled={!outputContent}
+          aria-label="Download output"
+          title={`Download as output.${info.ext}`}
+          onClick={() => downloadFile(outputContent, `output.${info.ext}`, info.mime)}
+        >
+          <Download />
+        </button>
+      </div>
+
+      {(outputStale || outputError) && (
+        <div
+          role="status"
+          data-testid="output-stale"
+          className="flex shrink-0 items-center gap-2 border-b border-line bg-bar px-3 py-2 text-[12.5px] text-fg-2"
+        >
+          <Info className="size-[15px] shrink-0" aria-hidden="true" />
+          <span className="min-w-0 truncate">
+            {outputError ? `Can't convert to ${targetBadge(outputTarget)}: ${outputError}` : 'Showing the last valid result. Fix the input to update.'}
           </span>
-          {outputContent && (
-            <span className="text-[11px] text-gray-400 hidden sm:inline font-mono">
-              ({lineCount} lines • {sizeKB} KB)
-            </span>
-          )}
         </div>
+      )}
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopy}
-            disabled={!outputContent}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors shadow-sm"
-            title="Copy output to clipboard"
-          >
-            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copied ? 'Copied' : 'Copy'}</span>
-          </button>
-
-          <button
-            onClick={handleDownload}
-            disabled={!outputContent}
-            className="p-1 text-gray-400 hover:text-white hover:bg-gray-700 disabled:text-gray-600 disabled:hover:bg-transparent rounded-lg transition-colors"
-            title="Download output file"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-
-          <OutputModeSelector
-            currentMode={outputMode}
-            onChange={setOutputMode}
-          />
-        </div>
+      <div className={`min-h-0 flex-1 overflow-hidden ${outputStale ? 'opacity-45' : ''}`}>
+        <ErrorBoundary label="output">{renderContent()}</ErrorBoundary>
       </div>
 
-      {/* Editor Surface */}
-      <div className="flex-1 overflow-hidden relative">
-        {renderContent()}
+      <div className="flex h-7 shrink-0 items-center gap-2.5 border-t border-line px-3 text-xs text-muted">
+        <span>
+          {lines} {lines === 1 ? 'line' : 'lines'} · {formatBytes(outputContent.length)}
+        </span>
+        <div className="flex-1" />
+        {outputStale ? (
+          <span>Out of date</span>
+        ) : outputTokens !== null ? (
+          <span data-testid="output-tokens">
+            {tokenStats.tokenizer === 'estimate' ? `~${outputTokens} tokens` : `${outputTokens} tokens · o200k_base`}
+          </span>
+        ) : null}
       </div>
-    </div>
+    </section>
   );
 }

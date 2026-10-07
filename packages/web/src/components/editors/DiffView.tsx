@@ -1,43 +1,39 @@
 import { DiffEditor } from '@monaco-editor/react';
+import { monacoTheme } from '../../lib/monaco';
+import { useEditorStore } from '../../lib/store';
+import { EditorLoading } from './EditorLoading';
 
 interface DiffViewProps {
   original: string;
   modified: string;
   language?: string;
-  theme?: 'light' | 'vs-dark';
 }
 
-export function DiffView({
-  original,
-  modified,
-  language = 'json',
-  theme = 'vs-dark',
-}: DiffViewProps) {
+export default function DiffView({ original, modified, language = 'json' }: DiffViewProps) {
+  const theme = useEditorStore((s) => s.theme);
+
   return (
-    <div className="w-full h-full">
-      <DiffEditor
-        height="100%"
-        original={original}
-        modified={modified}
-        language={language}
-        theme={theme}
-        loading={
-          <div className="flex items-center justify-center h-full bg-gray-900 text-gray-400 text-xs">
-            Loading Diff visualizer...
-          </div>
-        }
-        options={{
-          readOnly: true,
-          minimap: { enabled: false },
-          fontSize: 13,
-          lineNumbers: 'on',
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          renderSideBySide: true,
-          wordWrap: 'on',
-          padding: { top: 12, bottom: 12 },
-        }}
-      />
-    </div>
+    <DiffEditor
+      height="100%"
+      original={original}
+      modified={modified}
+      language={language}
+      theme={monacoTheme(theme)}
+      loading={<EditorLoading />}
+      options={{
+        readOnly: true,
+        minimap: { enabled: false },
+        fontFamily: "'Geist Mono Variable', ui-monospace, monospace",
+        fontSize: 12.5,
+        lineHeight: 20,
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        renderSideBySide: true,
+        useInlineViewWhenSpaceIsLimited: true,
+        wordWrap: 'on',
+        scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, useShadows: false },
+        padding: { top: 10, bottom: 10 },
+      }}
+    />
   );
 }

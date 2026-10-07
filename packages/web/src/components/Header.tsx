@@ -1,136 +1,162 @@
-import {
-  Braces,
-  Zap,
-  Sun,
-  Moon,
-  Github,
-  RotateCcw,
-  Undo2,
-  Redo2,
-} from 'lucide-react';
-import { useEditorStore } from '../lib/store';
+import { useRef, useState } from 'react';
+import { ArrowRight, Github, MoreHorizontal, Redo2, Undo2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { THEMES, useEditorStore, type ThemeName } from '../lib/store';
+import { loadFromURL } from '../lib/file-handler';
+import { Logo } from './ui/Logo';
+import { Menu, MenuItem, MenuSeparator } from './ui/Menu';
 
-export function Header() {
-  const {
-    isDarkMode,
-    tokenStats,
-    toggleDarkMode,
-    clearAll,
-    loadSample,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-  } = useEditorStore();
+const THEME_LABELS: Record<ThemeName, string> = { indigo: 'Indigo', amber: 'Amber', paper: 'Paper' };
+
+function TokenChip() {
+  const stats = useEditorStore((s) => s.tokenStats);
+  if (stats.jsonTokens === 0) return null;
+  const approx = stats.tokenizer === 'estimate' ? '~' : '';
+  const title =
+    stats.tokenizer === 'o200k_base'
+      ? `Exact o200k_base (GPT-4o) token counts. Formatted JSON ${stats.jsonTokens}, minified JSON ${stats.minifiedTokens}, TOON ${stats.toonTokens}. TOON saves ${stats.savedVsMinifiedPercent}% vs minified JSON.`
+      : 'Estimated counts. The exact tokenizer is still loading.';
 
   return (
-    <header className="bg-gray-900/95 backdrop-blur border-b border-gray-800 sticky top-0 z-50 px-6 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Brand & Tagline */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-purple-500 shadow-md shadow-blue-500/20 text-white">
-            <Braces className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
-                Braces Reborn
-              </h1>
-              <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded font-mono">
-                v2.1
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-400 hidden sm:block">
-              Modern Polyglot JSON Suite & Interactive Schema Workspace
-            </p>
-          </div>
-        </div>
+    <span
+      title={title}
+      data-testid="token-chip"
+      className="hidden h-7 items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 font-mono text-xs text-muted sm:inline-flex"
+    >
+      <span>
+        JSON <b className="font-medium text-fg">{approx}{stats.jsonTokens}</b>
+      </span>
+      <ArrowRight className="size-3" aria-hidden="true" />
+      <span>
+        TOON <b className="font-medium text-fg">{approx}{stats.toonTokens}</b>
+      </span>
+      {stats.savedPercent > 0 && <span className="font-medium text-positive-fg">−{stats.savedPercent}%</span>}
+    </span>
+  );
+}
 
-        {/* Live Token Savings Badge */}
-        {tokenStats.jsonTokens > 0 && (
-          <div className="flex items-center gap-3 px-3.5 py-1.5 bg-gradient-to-r from-purple-950/50 via-indigo-950/50 to-blue-950/50 border border-indigo-500/30 rounded-full shadow-inner text-xs">
-            <div className="flex items-center gap-1.5 text-indigo-300 font-medium">
-              <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span className="hidden sm:inline">Token Economy:</span>
-            </div>
-            <div className="flex items-center gap-2 font-mono text-[11px]">
-              <span className="text-gray-300">
-                JSON: <strong className="text-white">{tokenStats.jsonTokens}</strong> tok
-              </span>
-              <span className="text-gray-600">|</span>
-              <span className="text-indigo-300">
-                TOON: <strong className="text-indigo-200">{tokenStats.toonTokens}</strong> tok
-              </span>
-              {tokenStats.savedPercent > 0 && (
-                <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded font-semibold text-[10px]">
-                  -{tokenStats.savedPercent}% saved
-                </span>
-              )}
-            </div>
-          </div>
+function ThemeButton() {
+  const theme = useEditorStore((s) => s.theme);
+  const cycleTheme = useEditorStore((s) => s.cycleTheme);
+  const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  return (
+    <button
+      type="button"
+      onClick={cycleTheme}
+      className="btn gap-2 pr-2.5 pl-2"
+      aria-label={`Theme: ${THEME_LABELS[theme]}. Switch to ${THEME_LABELS[next]}`}
+      title={`Theme: ${THEME_LABELS[theme]} (click for ${THEME_LABELS[next]})`}
+    >
+      <span className="inline-flex items-center" aria-hidden="true">
+        <span className="size-2.5 rounded-full bg-brand-open" />
+        <span className="-ml-[3px] size-2.5 rounded-full bg-brand-close ring-[1.5px] ring-raised" />
+      </span>
+      <span className="hidden sm:inline">{THEME_LABELS[theme]}</span>
+    </button>
+  );
+}
+
+function UrlDialog({ dialog }: { dialog: React.RefObject<HTMLDialogElement | null> }) {
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const setInputWithFormat = useEditorStore((s) => s.setInputWithFormat);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const result = await loadFromURL(url);
+    setLoading(false);
+    if (result.success && result.content !== undefined) {
+      setInputWithFormat(result.content, result.format ?? 'json');
+      toast.success(`Loaded ${(result.format ?? 'json').toUpperCase()} from URL`);
+      dialog.current?.close();
+      setUrl('');
+    } else {
+      toast.error(result.error ?? 'Could not load that URL');
+    }
+  };
+
+  return (
+    <dialog
+      ref={dialog}
+      aria-labelledby="url-dialog-title"
+      className="m-auto w-[min(440px,calc(100vw-32px))] rounded-lg border border-line-strong bg-raised p-0 text-fg backdrop:bg-black/50"
+    >
+      <form onSubmit={submit} className="flex flex-col gap-3 p-4">
+        <h2 id="url-dialog-title" className="text-sm font-semibold">Fetch from URL</h2>
+        <p className="text-[13px] text-fg-2">
+          The request goes straight from your browser to that address. The server must allow cross-origin requests.
+        </p>
+        <input
+          type="url"
+          required
+          autoFocus
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://api.example.com/data.json"
+          aria-label="URL"
+          className="h-[30px] rounded-md border border-line-strong bg-bg px-2.5 text-[13px] outline-none focus:border-primary"
+        />
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-ghost" onClick={() => dialog.current?.close()}>
+            Cancel
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? 'Loading…' : 'Fetch'}
+          </button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
+
+export function Header() {
+  const { undo, redo, canUndo, canRedo, loadSample, clearAll } = useEditorStore();
+  const urlDialog = useRef<HTMLDialogElement>(null);
+
+  return (
+    <header className="flex h-12 shrink-0 items-center gap-2.5 border-b border-line pr-3 pl-4">
+      <Logo />
+      <div className="flex-1" />
+      <TokenChip />
+      <div className="mx-1 hidden h-5 w-px bg-line-strong sm:block" />
+      <button type="button" className="btn btn-icon" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl+Z)">
+        <Undo2 />
+      </button>
+      <button type="button" className="btn btn-icon" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl+Y)">
+        <Redo2 />
+      </button>
+      <Menu
+        label="More actions"
+        align="end"
+        width={200}
+        trigger={(props) => (
+          <button type="button" className="btn btn-icon" aria-label="More actions" {...props}>
+            <MoreHorizontal />
+          </button>
         )}
-
-        {/* Global Controls & Theme */}
-        <div className="flex items-center gap-2">
-          {/* Undo / Redo */}
-          <div className="flex items-center bg-gray-800/80 border border-gray-700/80 rounded-lg p-0.5">
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              className="p-1.5 text-gray-400 hover:text-white disabled:text-gray-600 disabled:hover:bg-transparent rounded transition-colors"
-              title="Undo (Ctrl+Z)"
-            >
-              <Undo2 className="w-3.5 h-3.5" />
-            </button>
-            <div className="h-3.5 w-px bg-gray-700 mx-0.5" />
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              className="p-1.5 text-gray-400 hover:text-white disabled:text-gray-600 disabled:hover:bg-transparent rounded transition-colors"
-              title="Redo (Ctrl+Y)"
-            >
-              <Redo2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <button
-            onClick={loadSample}
-            className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 rounded-lg text-xs font-medium transition-colors"
-            title="Reset to Sample JSON payload"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-purple-400" />
-            <span>Sample</span>
-          </button>
-
-          <button
-            onClick={clearAll}
-            className="px-3 py-1.5 bg-gray-800 hover:bg-red-950/60 hover:text-red-300 hover:border-red-800 text-gray-400 border border-gray-700 rounded-lg text-xs transition-colors"
-            title="Clear all editor content"
-          >
-            Clear
-          </button>
-
-          <div className="h-5 w-px bg-gray-800 mx-1" />
-
-          <a
-            href="https://github.com/sentry007/Braces_Proto"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            title="GitHub Repository"
-          >
-            <Github className="w-4 h-4" />
-          </a>
-
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
-            title="Toggle theme"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
-          </button>
-        </div>
-      </div>
+      >
+        {(close) => (
+          <>
+            <MenuItem onSelect={() => { loadSample(); close(); }}>Load sample</MenuItem>
+            <MenuItem onSelect={() => { close(); urlDialog.current?.showModal(); }}>Fetch from URL…</MenuItem>
+            <MenuSeparator />
+            <MenuItem onSelect={() => { clearAll(); close(); }}>Clear input</MenuItem>
+          </>
+        )}
+      </Menu>
+      <div className="mx-1 h-5 w-px bg-line-strong" />
+      <a
+        className="btn btn-icon"
+        href="https://github.com/sentry007/Braces_Proto"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="GitHub repository"
+      >
+        <Github />
+      </a>
+      <ThemeButton />
+      <UrlDialog dialog={urlDialog} />
     </header>
   );
 }

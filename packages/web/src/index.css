@@ -1,16 +1,215 @@
 @import "tailwindcss";
 
-:root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/*
+ * Theme tokens. Three themes cycle from the header button:
+ * indigo (dark, default), amber (dark) and paper (light).
+ * Components use the Tailwind color names defined in @theme below.
+ */
+:root,
+[data-theme="indigo"] {
+  color-scheme: dark;
+  --bg: #0a0a0b;
+  --bar: #0c0c0e;
+  --surface: #0f0f11;
+  --raised: #131316;
+  --hover: #1b1b1f;
+  --active: #1f1f24;
+  --line: #1f1f23;
+  --line-strong: #26262b;
+  --line-hover: #3a3a41;
+  --fg: #ededef;
+  --fg-2: #a1a1aa;
+  --muted: #8b8b94;
+  --faint: #4b4b53;
+  --primary: #4f46e5;
+  --primary-hover: #5b54ea;
+  --on-primary: #ffffff;
+  --accent: #c7d2fe;
+  --brand-open: #818cf8;
+  --brand-close: #5eead4;
+  --positive: #2dd4bf;
+  --positive-fg: #5eead4;
+  --positive-tint: rgba(45, 212, 191, 0.1);
+  --positive-edge: rgba(45, 212, 191, 0.25);
+  --danger: #fb7185;
+  --danger-fg: #fca5a5;
+  --danger-tint: #1a0f12;
+  --danger-edge: #3b1d22;
+  --syn-key: #818cf8;
+  --syn-string: #5eead4;
+  --syn-number: #fcd34d;
+  --syn-keyword: #c4b5fd;
+}
+
+[data-theme="amber"] {
+  color-scheme: dark;
+  --bg: #0c0a09;
+  --bar: #0f0d0c;
+  --surface: #121010;
+  --raised: #171412;
+  --hover: #1f1b18;
+  --active: #26211d;
+  --line: #26221f;
+  --line-strong: #2f2a26;
+  --line-hover: #47403a;
+  --fg: #f5f5f4;
+  --fg-2: #a8a29e;
+  --muted: #8f8984;
+  --faint: #57534e;
+  --primary: #f59e0b;
+  --primary-hover: #fbbf24;
+  --on-primary: #1c1917;
+  --accent: #fcd34d;
+  --brand-open: #fbbf24;
+  --brand-close: #38bdf8;
+  --positive: #38bdf8;
+  --positive-fg: #7dd3fc;
+  --positive-tint: rgba(56, 189, 248, 0.1);
+  --positive-edge: rgba(56, 189, 248, 0.25);
+  --danger: #f87171;
+  --danger-fg: #fca5a5;
+  --danger-tint: #1c0f0e;
+  --danger-edge: #3d1f1c;
+  --syn-key: #7dd3fc;
+  --syn-string: #fcd34d;
+  --syn-number: #bef264;
+  --syn-keyword: #fda4af;
+}
+
+[data-theme="paper"] {
+  color-scheme: light;
+  --bg: #fafafa;
+  --bar: #f7f7f8;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --hover: #f4f4f5;
+  --active: #ffffff;
+  --line: #ececef;
+  --line-strong: #e4e4e7;
+  --line-hover: #d4d4d8;
+  --fg: #18181b;
+  --fg-2: #52525b;
+  --muted: #6b6b74;
+  --faint: #a1a1aa;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --on-primary: #ffffff;
+  --accent: #4338ca;
+  --brand-open: #4f46e5;
+  --brand-close: #0d9488;
+  --positive: #0d9488;
+  --positive-fg: #0f766e;
+  --positive-tint: rgba(13, 148, 136, 0.08);
+  --positive-edge: rgba(13, 148, 136, 0.25);
+  --danger: #e11d48;
+  --danger-fg: #be123c;
+  --danger-tint: #fff1f2;
+  --danger-edge: #fecdd3;
+  --syn-key: #4338ca;
+  --syn-string: #0f766e;
+  --syn-number: #b45309;
+  --syn-keyword: #be185d;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bar: var(--bar);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-hover: var(--hover);
+  --color-active: var(--active);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-hover: var(--line-hover);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-accent: var(--accent);
+  --color-brand-open: var(--brand-open);
+  --color-brand-close: var(--brand-close);
+  --color-positive: var(--positive);
+  --color-positive-fg: var(--positive-fg);
+  --color-positive-tint: var(--positive-tint);
+  --color-positive-edge: var(--positive-edge);
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-edge: var(--danger-edge);
+  --color-syn-key: var(--syn-key);
+  --color-syn-string: var(--syn-string);
+  --color-syn-number: var(--syn-number);
+  --color-syn-keyword: var(--syn-keyword);
+  --font-sans: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  background-color: rgb(17 24 39);
-  color: rgb(243 244 246);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 35%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* Slim scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex h-[30px] shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-line-strong bg-raised px-2.5 text-[13px] font-medium whitespace-nowrap text-fg transition-colors duration-100 hover:border-line-hover hover:bg-hover disabled:cursor-default disabled:opacity-40 disabled:hover:border-line-strong disabled:hover:bg-raised;
+  }
+  .btn svg {
+    @apply size-[15px] text-fg-2;
+  }
+  .btn-primary {
+    @apply border-primary bg-primary text-on-primary hover:border-primary-hover hover:bg-primary-hover disabled:hover:border-primary disabled:hover:bg-primary;
+  }
+  .btn-primary svg {
+    @apply text-on-primary;
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-fg-2 hover:border-transparent hover:bg-hover hover:text-fg disabled:hover:bg-transparent;
+  }
+  .btn-icon {
+    @apply w-[30px] justify-center border-transparent bg-transparent px-0 text-fg-2 hover:border-transparent hover:bg-hover hover:text-fg disabled:hover:bg-transparent;
+  }
+  .btn-icon svg {
+    @apply size-4;
+  }
+  .badge {
+    @apply rounded border border-line-strong bg-hover px-1.5 py-[3px] font-mono text-[11px] leading-none font-medium text-fg-2;
+  }
+  .tabs {
+    @apply inline-flex gap-0.5 rounded-[7px] border border-line bg-bg p-0.5;
+  }
+  .tab {
+    @apply h-6 cursor-pointer rounded-[5px] px-2.5 text-xs font-medium text-muted transition-colors duration-100 hover:text-fg aria-selected:bg-active aria-selected:text-fg;
+  }
+  [data-theme="paper"] .tab[aria-selected="true"] {
+    box-shadow: 0 0 0 1px var(--line-strong);
+  }
 }
