@@ -1,143 +1,224 @@
 {
-  "name": "braces-vscode",
-  "displayName": "Braces Reborn: Polyglot JSON Suite & AI Token Optimizer",
+  "name": "bracer-vscode",
+  "displayName": "Bracer: JSON Repair, TOON & Token Optimizer",
   "description": "Visual JSON inspection, bidirectional conversions (TOON, YAML, XML, CSV, TOML), heuristic auto-repair, schema generation (TypeScript, Zod, JSON Schema), and LLM token optimization.",
-  "version": "2.1.0",
+  "version": "1.0.0",
   "publisher": "sentry007",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
     "Formatters",
-    "Linters",
     "Programming Languages",
     "Other"
   ],
   "main": "./dist/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run build",
-    "build": "tsup src/extension.ts --format cjs --external vscode",
-    "dev": "tsup src/extension.ts --format cjs --external vscode --watch",
-    "package": "vsce package --no-dependencies"
-  },
-  "dependencies": {
-    "@braces/core": "*"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies",
+    "pretest": "npm run build",
+    "test": "node --test test/extension.test.cjs"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.2.1",
     "tsup": "^8.4.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "bracer": "^1.0.0"
   },
   "activationEvents": [
     "onLanguage:json",
-    "onLanguage:jsonc",
-    "onLanguage:yaml",
-    "onLanguage:toml",
-    "onLanguage:xml"
+    "onLanguage:jsonc"
   ],
   "contributes": {
     "commands": [
       {
-        "command": "braces.repairJSON",
-        "title": "Braces: Auto-Repair Broken/Dirty JSON",
-        "category": "Braces"
+        "command": "bracer.repairJSON",
+        "title": "Repair JSON",
+        "category": "Bracer"
       },
       {
-        "command": "braces.formatJSON",
-        "title": "Braces: Format / Beautify JSON",
-        "category": "Braces"
+        "command": "bracer.formatJSON",
+        "title": "Format JSON",
+        "category": "Bracer"
       },
       {
-        "command": "braces.minifyJSON",
-        "title": "Braces: Minify JSON",
-        "category": "Braces"
+        "command": "bracer.minifyJSON",
+        "title": "Minify JSON",
+        "category": "Bracer"
       },
       {
-        "command": "braces.convertToTOON",
-        "title": "Braces: Convert to TOON (LLM Token-Oriented Object Notation)",
-        "category": "Braces"
+        "command": "bracer.convertToTOON",
+        "title": "Convert to TOON",
+        "category": "Bracer"
       },
       {
-        "command": "braces.convertToYAML",
-        "title": "Braces: Convert to YAML",
-        "category": "Braces"
+        "command": "bracer.convertToYAML",
+        "title": "Convert to YAML",
+        "category": "Bracer"
       },
       {
-        "command": "braces.convertToXML",
-        "title": "Braces: Convert to XML",
-        "category": "Braces"
+        "command": "bracer.convertToXML",
+        "title": "Convert to XML",
+        "category": "Bracer"
       },
       {
-        "command": "braces.convertToCSV",
-        "title": "Braces: Convert to CSV",
-        "category": "Braces"
+        "command": "bracer.convertToCSV",
+        "title": "Convert to CSV",
+        "category": "Bracer"
       },
       {
-        "command": "braces.convertToTOML",
-        "title": "Braces: Convert to TOML",
-        "category": "Braces"
+        "command": "bracer.convertToTOML",
+        "title": "Convert to TOML",
+        "category": "Bracer"
       },
       {
-        "command": "braces.generateTypeScript",
-        "title": "Braces: Generate TypeScript Types / Interfaces",
-        "category": "Braces"
+        "command": "bracer.generateTypeScript",
+        "title": "Generate TypeScript Types",
+        "category": "Bracer"
       },
       {
-        "command": "braces.generateZod",
-        "title": "Braces: Generate Zod Validation Schema",
-        "category": "Braces"
+        "command": "bracer.generateZod",
+        "title": "Generate Zod Schema",
+        "category": "Bracer"
       },
       {
-        "command": "braces.generateJSONSchema",
-        "title": "Braces: Generate JSON Schema (Draft 2020-12)",
-        "category": "Braces"
+        "command": "bracer.generateJSONSchema",
+        "title": "Generate JSON Schema",
+        "category": "Bracer"
       },
       {
-        "command": "braces.generateMarkdownTable",
-        "title": "Braces: Generate Markdown Table",
-        "category": "Braces"
+        "command": "bracer.generateMarkdownTable",
+        "title": "Generate Markdown Table",
+        "category": "Bracer"
       },
       {
-        "command": "braces.optimizeTokens",
-        "title": "Braces: Optimize for AI Context (Copy TOON to Clipboard)",
-        "category": "Braces"
+        "command": "bracer.optimizeTokens",
+        "title": "Copy as TOON (for LLM prompts)",
+        "category": "Bracer"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "when": "resourceExtname == .json || resourceExtname == .jsonc || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .toml || resourceExtname == .xml",
-          "command": "braces.repairJSON",
-          "group": "1_braces@1"
+          "when": "editorLangId == json || editorLangId == jsonc",
+          "command": "bracer.repairJSON",
+          "group": "1_bracer@1"
         },
         {
-          "when": "resourceExtname == .json || resourceExtname == .jsonc",
-          "command": "braces.optimizeTokens",
-          "group": "1_braces@2"
+          "when": "editorLangId == json || editorLangId == jsonc",
+          "command": "bracer.optimizeTokens",
+          "group": "1_bracer@2"
         },
         {
-          "when": "resourceExtname == .json || resourceExtname == .jsonc",
-          "command": "braces.convertToTOON",
-          "group": "2_braces_conversions@1"
+          "when": "editorLangId == json || editorLangId == jsonc",
+          "command": "bracer.convertToTOON",
+          "group": "2_bracer_conversions@1"
         },
         {
-          "when": "resourceExtname == .json || resourceExtname == .jsonc",
-          "command": "braces.convertToYAML",
-          "group": "2_braces_conversions@2"
+          "when": "editorLangId == json || editorLangId == jsonc",
+          "command": "bracer.convertToYAML",
+          "group": "2_bracer_conversions@2"
         },
         {
-          "when": "resourceExtname == .json || resourceExtname == .jsonc",
-          "command": "braces.generateTypeScript",
-          "group": "3_braces_gen@1"
+          "when": "editorLangId == json || editorLangId == jsonc",
+          "command": "bracer.generateTypeScript",
+          "group": "3_bracer_gen@1"
         },
         {
-          "when": "resourceExtname == .json || resourceExtname == .jsonc",
-          "command": "braces.generateZod",
-          "group": "3_braces_gen@2"
+          "when": "editorLangId == json || editorLangId == jsonc",
+          "command": "bracer.generateZod",
+          "group": "3_bracer_gen@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "bracer.repairJSON",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.formatJSON",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.minifyJSON",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.convertToTOON",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.convertToYAML",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.convertToXML",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.convertToCSV",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.convertToTOML",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.generateTypeScript",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.generateZod",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.generateJSONSchema",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.generateMarkdownTable",
+          "when": "editorLangId == json || editorLangId == jsonc"
+        },
+        {
+          "command": "bracer.optimizeTokens",
+          "when": "editorLangId == json || editorLangId == jsonc"
         }
       ]
     }
-  }
+  },
+  "license": "MIT",
+  "author": "Nuzair Palwala",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sentry007/Braces_Proto.git",
+    "directory": "packages/vscode"
+  },
+  "homepage": "https://github.com/sentry007/Braces_Proto#readme",
+  "bugs": {
+    "url": "https://github.com/sentry007/Braces_Proto/issues"
+  },
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#0f172a",
+    "theme": "dark"
+  },
+  "keywords": [
+    "json",
+    "toon",
+    "llm",
+    "tokens",
+    "repair",
+    "yaml",
+    "toml",
+    "xml",
+    "csv",
+    "zod",
+    "typescript",
+    "json-schema"
+  ]
 }

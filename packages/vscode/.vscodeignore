@@ -1,4 +1,9 @@
 src/**
+node_modules/**
 tsconfig.json
-.vscode/**
+tsup.config.ts
 *.tsbuildinfo
+*.vsix
+.vscode/**
+**/*.map
+test/**

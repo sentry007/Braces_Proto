@@ -1,220 +1,116 @@
-# ⚡ Braces Reborn
+# ⚡ Bracer
 
-> **The Modern Polyglot JSON Suite & AI Token Economy Engine**  
-> *Available as a Web Portal, Model Context Protocol (MCP 2.0) Server, IDE Extension, and Core TypeScript Engine.*
+> **A JSON toolkit for LLM workflows.** Repair broken LLM JSON, convert between JSON, TOON, YAML, XML, CSV and TOML, generate types and schemas, and measure the real token cost of your data.
+> *Available as a web app, an MCP server, a VS Code extension and a TypeScript library.*
 
+[![CI](https://github.com/sentry007/Braces_Proto/actions/workflows/ci.yml/badge.svg)](https://github.com/sentry007/Braces_Proto/actions/workflows/ci.yml)
 [![Deploy to GitHub Pages](https://github.com/sentry007/Braces_Proto/actions/workflows/deploy.yml/badge.svg)](https://github.com/sentry007/Braces_Proto/actions/workflows/deploy.yml)
-[![CI & Build](https://github.com/sentry007/Braces_Proto/actions/workflows/ci.yml/badge.svg)](https://github.com/sentry007/Braces_Proto/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
 
-👉 **[Launch Live Web Portal](https://sentry007.github.io/Braces_Proto/)**
+👉 **[Open the web app](https://sentry007.github.io/Braces_Proto/)**
 
 ---
 
-## 🌟 Multi-Platform Ecosystem & Monorepo
+## Packages
 
-Braces Reborn is architected with a decoupled, high-performance **Core Logic Engine** (`@braces/core`) written in 100% pure TypeScript with **zero DOM dependencies**, powering three flagship interfaces:
+All four packages share one engine, [`bracer`](./packages/core): pure TypeScript with no DOM dependencies.
 
-```
-                                  ┌───────────────────────────────┐
-                                  │       📦 @braces/core         │
-                                  │  (Parsers, Converters, Repair │
-                                  │  Schema Gen, Token Suite)     │
-                                  └───────────────┬───────────────┘
-                                                  │
-                 ┌────────────────────────────────┼────────────────────────────────┐
-                 ▼                                ▼                                ▼
-      ┌────────────────────┐            ┌───────────────────┐            ┌───────────────────┐
-      │   🌐 Web Portal    │            │   🤖 MCP 2.0      │            │   💻 IDE Plugin   │
-      │   (packages/web)   │            │   (packages/mcp)  │            │ (packages/vscode) │
-      │  React 19 + Monaco │            │  Claude / Cursor  │            │  Commands, Status │
-      │  & Visual Tree DND │            │  Stdio Transport  │            │  Bar & Quick Fix  │
-      └────────────────────┘            └───────────────────┘            └───────────────────┘
-```
-
-| Workspace Package | Type | Description |
+| Package | What it is | Install |
 | :--- | :--- | :--- |
-| [`@braces/core`](./packages/core) | Library | Dual ESM/CJS pure engine with AST repair, bidirectional polyglot converters, schema generators, and token counters. |
-| [`braces-web`](./packages/web) | Web App | React 19 + Tailwind v4 + Monaco Editor + Drag-and-Drop Visual Tree AST Editor with Undo/Redo (GitHub Pages). |
-| [`braces-mcp`](./packages/mcp) | MCP Server | Official Model Context Protocol 2.0 (`@modelcontextprotocol/server`) over `stdio` for Claude Desktop, Cursor, Antigravity, and Windsurf. |
-| [`braces-vscode`](./packages/vscode) | IDE Extension | VS Code / Antigravity / Cursor extension with status bar token counter, right-click converters, and quick-fix repair. |
+| [`bracer`](./packages/core) | Core library (ESM + CJS) | `npm install bracer` |
+| [`bracer-mcp`](./packages/mcp) | MCP server for Claude Code, Claude Desktop, Cursor, Windsurf, Cline | `npx -y bracer-mcp` |
+| [`bracer-vscode`](./packages/vscode) | VS Code / Cursor / Windsurf extension | VS Code Marketplace or Open VSX |
+| [`bracer-web`](./packages/web) | Web app: React 19 + Monaco + visual tree editor | [GitHub Pages](https://sentry007.github.io/Braces_Proto/) |
 
----
+## What it does
 
-## 🚀 1. Web Portal (Client-Side & Zero-Telemetry)
+- **Repair LLM JSON.** Handles code fences (including prose around them), truncated output, single quotes, unquoted keys, trailing commas, comments, Python `True`/`False`/`None`, and bare `undefined`/`NaN`/`Infinity`. Text inside strings is never rewritten.
+- **Convert** JSON ⇄ **TOON** (Token-Oriented Object Notation, via the official [`@toon-format/toon`](https://github.com/toon-format/toon) encoder), YAML, XML, CSV and TOML.
+- **Count tokens exactly.** Uses the `o200k_base` tokenizer (GPT-4o family) through [`js-tiktoken`](https://github.com/dqbd/tiktoken). Bracer compares formatted JSON, minified JSON, TOON and YAML, and reports TOON's savings against *both* formatted and minified JSON. Until the tokenizer loads, counts are estimates and are marked with `~`.
+- **Generate code** from sample data: TypeScript interfaces (keys missing in some records become optional), Zod schemas, JSON Schema (2020-12) and Markdown tables.
 
-The web portal is a private, client-side developer workspace deployed to [GitHub Pages](https://sentry007.github.io/Braces_Proto/):
+### How much does TOON actually save?
 
-- **🌲 Interactive Drag & Drop AST Editor**:
-  - Reorder, reparent, and mutate keys/values visually with zero risk of syntax errors (no missing commas, unbalanced braces, or type mismatches).
-  - Convert node types on the fly (`string`, `number`, `boolean`, `null`, `object`, `array`).
-  - Two-way real-time synchronization between Monaco Code Editor, Form Editor, and Visual Tree.
-- **⏪ Native Undo & Redo**:
-  - 50-step snapshot history stack with dedicated header controls and global keyboard shortcuts (`Ctrl+Z` / `Cmd+Z` to undo, `Ctrl+Y` / `Cmd+Shift+Z` to redo).
-- **📂 Multi-Format File Import & Drag-and-Drop**:
-  - Drag and drop any data file directly onto the Input Pane (`.json`, `.yaml`, `.yml`, `.xml`, `.csv`, `.toml`, `.toon`).
-  - Automatic format detection and instant editor configuration.
-- **🔄 Polyglot Bidirectional Conversion Engine**:
-  - **JSON ⇄ TOON** (Token-Oriented Object Notation for LLMs)
-  - **JSON ⇄ YAML** (clean indentation, no circular refs)
-  - **JSON ⇄ XML** (root wrapping & attribute preservation)
-  - **JSON ⇄ CSV** (tabular parsing with header detection)
-  - **JSON ⇄ TOML** (top-level key-value mapping)
-- **🤖 AI & LLM Token Economy Suite**:
-  - **TOON Encoding**: Saves **30%–60% of context window tokens** for arrays and structured records when prompting LLMs (Claude 3.7 / GPT-4o / Gemini).
-  - **Live Token Counter**: Real-time BPE token estimations comparing JSON vs. TOON vs. YAML vs. Minified JSON.
-- **🛠️ AST-Driven Auto-Repair Engine**:
-  - Powered by token-aware AST repair (`jsonrepair`) plus markdown fence extraction (```` ```json ... ``` ````).
-  - Correctly closes truncated JSON streams using proper LIFO delimiter stacking (e.g. `[{"id": 1, "title": "Second"`).
-  - Preserves keywords like `None`, `True`, `False` inside string literals without corruption.
-  - Normalizes quotes, unquoted keys, comments, and trailing commas.
-- **⚡ 1-Click Code & Schema Generators**:
-  - **Cross-Format Input**: Generates types directly from YAML, TOML, XML, CSV, and TOON.
-  - **TypeScript Interfaces**: Interspects multi-element arrays to merge keys and detect optional fields (`?:`).
-  - **Zod Schemas**: Generates `z.object({...})` validation schemas with inferred types (`.optional()`).
-  - **JSON Schema**: Draft 2020-12 standard compliant schema generation.
-  - **Markdown Tables**: Converts tabular JSON objects into GitHub/Notion markdown tables.
-- **🛡️ 100% Privacy Sandbox**: All transformations run locally in the browser sandbox. Zero telemetry or server logging.
+It depends on the shape of your data. TOON does best on **uniform arrays of objects**, where it writes the field names once as a header:
 
----
-
-## 🤖 2. Model Context Protocol (MCP 2.0) Server
-
-Equip your AI assistants (**Claude Code**, **Claude Desktop**, **Cursor**, **Antigravity IDE**, **Windsurf**, **Cline**) with native Braces tools built on the modern **MCP 2.0** specification.
-
-### Running with npx
-```bash
-npx braces-mcp
+```text
+users[2]{id,name}:
+  1,Alice
+  2,Bob
 ```
 
-### Configuration
+For that example, the exact `o200k_base` counts are:
+- **45 tokens** as formatted JSON
+- **21 tokens** as minified JSON
+- **19 tokens** as TOON
 
-#### Claude Desktop (`claude_desktop_config.json`)
+That is 58% fewer tokens than formatted JSON, but only 10% fewer than minified JSON. For deeply nested or irregular data the gain is smaller. Bracer shows the real numbers for *your* payload, so check them rather than relying on a headline figure.
+
+## MCP server
+
+```bash
+# Claude Code
+claude mcp add bracer -- npx -y bracer-mcp
+```
+
 ```json
+// Claude Desktop / Cursor / Windsurf
 {
   "mcpServers": {
-    "braces": {
-      "command": "npx",
-      "args": ["-y", "braces-mcp"]
-    }
+    "bracer": { "command": "npx", "args": ["-y", "bracer-mcp"] }
   }
 }
 ```
 
-#### Claude Code CLI
-```bash
-claude mcp add braces npx -y braces-mcp
-```
-
-#### Local Repository / Development Mode
-```json
-{
-  "mcpServers": {
-    "braces": {
-      "command": "node",
-      "args": ["<PATH_TO_REPO>/packages/mcp/dist/index.js"]
-    }
-  }
-}
-```
-
-### Available MCP 2.0 Tools
-
-| Tool Name | Parameters | Description |
+| Tool | Parameters | Description |
 | :--- | :--- | :--- |
-| `braces_repair_json` | `input: string` | Auto-repairs dirty, truncated, unquoted, single-quoted, or malformed JSON payloads from LLMs into valid JSON using AST repair. |
-| `braces_convert_format` | `content: string`, `fromFormat: string`, `toFormat: string`, `indent?: number` | Bidirectionally converts among `json`, `toon`, `yaml`, `xml`, `csv`, and `toml`. |
-| `braces_validate_json` | `jsonString: string` | Validates JSON syntax and returns exact line/column error diagnostics. |
-| `braces_generate_schema` | `jsonString: string`, `generator: string`, `nameHint?: string` | Generates `typescript` interfaces, `zod` schemas, `json-schema`, or `markdown-table`. |
-| `braces_optimize_tokens` | `jsonString: string`, `targetFormat?: string` | Encodes JSON into TOON/YAML to reduce context window size (30%-60%) and returns token economy metrics. |
+| `bracer_repair_json` | `input` | Repair malformed or truncated JSON and list the fixes applied |
+| `bracer_convert_format` | `content`, `fromFormat`, `toFormat`, `indent?` | Convert between `json`, `toon`, `yaml`, `xml`, `csv`, `toml` |
+| `bracer_validate_json` | `jsonString` | Validate JSON and report line and column of the error |
+| `bracer_generate_schema` | `jsonString`, `generator`, `nameHint?` | Generate `typescript`, `zod`, `json-schema` or `markdown-table` output |
+| `bracer_optimize_tokens` | `jsonString`, `targetFormat?` | Re-encode as `toon`, `yaml` or `minified` and return exact token counts |
 
----
+## Library
 
-## 💻 3. IDE Extension (VS Code / Antigravity / Cursor)
+```ts
+import { repairJSON, convertContent, jsonToTypeScript, loadTokenizer, calculateTokenStats } from 'bracer';
 
-The IDE extension brings Braces directly into your code editor workspace.
+const { repaired, fixes } = repairJSON("```json\n[{ name: 'Ada', active: True, score: NaN\n```");
+// [{ "name": "Ada", "active": true, "score": null }]
 
-### Key Features
-- **⚡ Status Bar Token Counter**: Displays real-time token count and % savings in the status bar (`⚡ ~340 tokens (TOON: -42%)`). Clicking it copies the token-optimized TOON representation to your clipboard.
-- **🖱️ Right-Click Context Menu**:
-  - `Braces: Auto-Repair Broken/Dirty JSON`
-  - `Braces: Optimize for AI Context (Copy TOON)`
-  - `Braces: Convert to TOON / YAML / XML / CSV / TOML`
-  - `Braces: Generate TypeScript Types / Zod Schema / JSON Schema / Markdown Table`
-- **💡 Quick Fix (Code Action)**: Detects invalid JSON syntax and offers a 1-click Quick Fix to repair the document using the AST engine.
+const toon = convertContent(json, 'json', 'toon');
 
-### Installing the Extension
-1. Download `braces-vscode-2.1.0.vsix` from GitHub Releases or package it locally.
-2. Install via command line:
-   ```bash
-   code --install-extension packages/vscode/braces-vscode-2.1.0.vsix
-   ```
-   *Or in VS Code/Antigravity: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`.*
-
----
-
-## 📦 4. Using `@braces/core` Programmatically
-
-Import `@braces/core` directly into any Node.js, Bun, Deno, or Browser project:
-
-```typescript
-import {
-  repairJSON,
-  convertContent,
-  validateJSON,
-  jsonToTypeScript,
-  jsonToZod,
-  calculateTokenStats,
-} from '@braces/core';
-
-// 1. AST-driven repair for truncated LLM streams or Python dict dumps
-const { success, repaired, fixes } = repairJSON("[{ name: 'Dirty', count: 5, active: True");
-console.log(repaired); 
-// [{"name": "Dirty", "count": 5, "active": true}]
-
-// 2. Convert JSON to TOON (saves 30%-60% LLM tokens)
-const toon = convertContent('{"model": "gpt-4o", "active": true}', 'json', 'toon');
-
-// 3. Compute token savings
-const stats = calculateTokenStats('{"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}');
-console.log(`Saved ${stats.savedPercent}% tokens using TOON!`);
-
-// 4. Generate TypeScript interfaces with multi-element key merging & optionality
-const tsInterfaces = jsonToTypeScript(
-  '[{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob", "email": "bob@example.com"}]',
-  'UserAccount'
-);
-// Inferred: email?: string;
+await loadTokenizer(); // loads the ~2 MB o200k_base table once
+const { jsonTokens, toonTokens, savedPercent, savedVsMinifiedPercent } = calculateTokenStats(json);
 ```
 
----
+See [`packages/core/README.md`](./packages/core/README.md) for the full API and per-format conversion notes.
 
-## 🛠️ Monorepo Development & Scripts
+## Web app
+
+- Pick a source format and a target (`From JSON → To TOON`); the output updates as you type. The target menu shows how many tokens each format would cost for your data.
+- Errors show inline with the line and column, plus a one-click Repair.
+- Code, tree, form and text views for the input; code, table preview and diff views for the output. 50-step undo/redo.
+- Open or drag in `.json`, `.toon`, `.yaml`, `.yml`, `.toml`, `.csv` or `.xml` files.
+- Three themes, cycled from the header: Indigo and Amber (dark) and Paper (light). The first visit follows your system setting.
+- **Privacy:** everything runs in your browser. The editor, fonts and tokenizer are bundled with the app, and the page makes no requests to any other server. An end-to-end test checks this on every build.
+
+## Development
 
 ```bash
-# Clone the repository
-git clone https://github.com/sentry007/Braces_Proto.git
-cd Braces_Proto
-
-# Install dependencies across all workspaces
-npm install
-
-# Run all test suites (Core & MCP 2.0)
-npm test
-
-# Build all workspaces (Core, Web, MCP, VSCode)
-npm run build
-
-# Start local web development server with HMR
-npm run dev
-
-# Package VS Code .vsix extension
-npm run package --workspace=braces-vscode
+npm ci              # install all workspaces
+npm run build       # build core, web, mcp and vscode
+npm test            # core, MCP (over stdio) and VS Code extension tests
+npm run test:pack   # pack the npm tarballs, install them, run the MCP binary
+npm run test:e2e    # Playwright tests against the production web build
+npm run lint        # lint the web app
+npm run dev         # web dev server
+npm run package --workspace=bracer-vscode   # build the .vsix
 ```
 
----
+Releases are published by pushing a `v*` tag (see [`.github/workflows/publish.yml`](./.github/workflows/publish.yml)).
 
-## 📄 License
+## License
 
-MIT License. Built with ❤️ for developers, prompt engineers, and AI agent builders.
+[MIT](./LICENSE)

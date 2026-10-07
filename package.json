@@ -1,20 +1,23 @@
 {
-  "name": "braces-reborn-monorepo",
+  "name": "bracer-monorepo",
   "private": true,
-  "version": "2.1.0",
+  "version": "1.0.0",
   "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=braces-web",
-    "build:core": "npm run build --workspace=@braces/core",
-    "build:web": "npm run build --workspace=braces-web",
-    "build:mcp": "npm run build --workspace=braces-mcp",
-    "build:vscode": "npm run build --workspace=braces-vscode",
+    "dev": "npm run dev --workspace=bracer-web",
+    "build:core": "npm run build --workspace=bracer",
+    "build:web": "npm run build --workspace=bracer-web",
+    "build:mcp": "npm run build --workspace=bracer-mcp",
+    "build:vscode": "npm run build --workspace=bracer-vscode",
     "build": "npm run build:core && npm run build:web && npm run build:mcp && npm run build:vscode",
-    "test": "npm run test --workspace=@braces/core && npm run test --workspace=braces-mcp",
-    "lint": "eslint packages/web/src"
+    "test": "npm run test --workspace=bracer && npm run test --workspace=bracer-mcp && npm run test --workspace=bracer-vscode",
+    "lint": "eslint packages/web/src",
+    "test:e2e": "npm run test:e2e --workspace=bracer-web",
+    "test:all": "npm test && npm run test:pack && npm run test:e2e",
+    "test:pack": "node scripts/e2e-pack.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

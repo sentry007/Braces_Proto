@@ -1,23 +1,44 @@
 {
-  "name": "braces-mcp",
-  "version": "2.1.0",
-  "description": "Model Context Protocol (MCP) server for Braces Reborn: polyglot conversion, JSON repair, schema generation, and token optimization",
+  "name": "bracer-mcp",
+  "version": "1.0.0",
+  "mcpName": "io.github.sentry007/bracer-mcp",
+  "description": "MCP server for LLM JSON workflows: repair broken JSON, convert JSON <-> TOON/YAML/XML/CSV/TOML, generate TypeScript/Zod/JSON Schema, and cut prompt tokens.",
+  "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "braces-mcp": "./bin/braces-mcp.js"
+    "bracer-mcp": "bin/bracer-mcp.js"
   },
-  "type": "module",
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE",
+    "server.json"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "Nuzair Palwala",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sentry007/Braces_Proto.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/sentry007/Braces_Proto#readme",
+  "bugs": {
+    "url": "https://github.com/sentry007/Braces_Proto/issues"
+  },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
+    "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsup src/index.ts --format esm --dts --watch",
-    "start": "node bin/braces-mcp.js",
+    "start": "node bin/bracer-mcp.js",
     "pretest": "npm run build",
-    "test": "node test/mcp.test.mjs"
+    "test": "node --test test/mcp.test.mjs",
+    "prepublishOnly": "npm test"
   },
   "dependencies": {
-    "@braces/core": "*",
     "@modelcontextprotocol/server": "^2.0.0",
-    "zod": "^3.24.2"
+    "bracer": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

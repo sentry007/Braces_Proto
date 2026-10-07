@@ -15,8 +15,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Lint, test and build must pass before anything is deployed
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   build:
     runs-on: ubuntu-latest
+    needs: ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,14 +30,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install
+        run: npm ci
 
       - name: Build
-        run: npm run build
+        run: npm run build:core && npm run build:web
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
