@@ -10,15 +10,18 @@ import {
   jsonToMarkdownTable,
   jsonToTOON,
   calculateTokenStats,
+  loadTokenizer,
   type ConversionFormat,
-} from '@braces/core';
+} from 'bracer';
 import { TokenStatusBar } from './statusBar';
 import { JSONRepairCodeActionProvider } from './quickFix';
 
 export function activate(context: vscode.ExtensionContext) {
-  // 1. Initialize Status Bar Token Counter
+  // 1. Initialize Status Bar Token Counter, then refresh with exact counts
+  // once the o200k_base tokenizer has loaded
   const statusBar = new TokenStatusBar();
   context.subscriptions.push(statusBar);
+  void loadTokenizer().then(() => statusBar.update());
 
   // 2. Register Quick Fix Code Action Provider
   context.subscriptions.push(
@@ -63,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Repair JSON
   context.subscriptions.push(
-    vscode.commands.registerCommand('braces.repairJSON', async () => {
+    vscode.commands.registerCommand('bracer.repairJSON', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
 
@@ -75,11 +78,11 @@ export function activate(context: vscode.ExtensionContext) {
           editBuilder.replace(range, result.repaired);
         });
         vscode.window.showInformationMessage(
-          `⚡ Braces: Successfully repaired JSON (${result.fixes.length} fixes applied)!`
+          `Bracer: repaired JSON (${result.fixes.join(", ")}).`
         );
       } else {
         vscode.window.showErrorMessage(
-          `⚡ Braces: Could not auto-repair JSON. ${result.error ?? ''}`
+          `Bracer: could not repair this JSON. ${result.error ?? ''}`
         );
       }
     })
@@ -87,7 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Format JSON
   context.subscriptions.push(
-    vscode.commands.registerCommand('braces.formatJSON', async () => {
+    vscode.commands.registerCommand('bracer.formatJSON', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
 
@@ -99,7 +102,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
       } catch (err) {
         vscode.window.showErrorMessage(
-          `⚡ Braces Format Error: ${err instanceof Error ? err.message : String(err)}`
+          `Bracer: could not format. ${err instanceof Error ? err.message : String(err)}`
         );
       }
     })
@@ -107,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Minify JSON
   context.subscriptions.push(
-    vscode.commands.registerCommand('braces.minifyJSON', async () => {
+    vscode.commands.registerCommand('bracer.minifyJSON', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
 
@@ -119,46 +122,51 @@ export function activate(context: vscode.ExtensionContext) {
         });
       } catch (err) {
         vscode.window.showErrorMessage(
-          `⚡ Braces Minify Error: ${err instanceof Error ? err.message : String(err)}`
+          `Bracer: could not minify. ${err instanceof Error ? err.message : String(err)}`
         );
       }
     })
   );
 
-  // Helper for Format Conversions
+  // Conversions open in a new editor tab so the source file is never overwritten.
+  // TOON, CSV and TOML have no built-in language mode, so they open as plain text.
+  const CONVERSION_LANGUAGE: Record<ConversionFormat, string> = {
+    json: 'json',
+    yaml: 'yaml',
+    xml: 'xml',
+    toon: 'plaintext',
+    csv: 'plaintext',
+    toml: 'plaintext',
+  };
+
   function registerConversionCommand(commandId: string, toFormat: ConversionFormat) {
     context.subscriptions.push(
       vscode.commands.registerCommand(commandId, async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) return;
 
-        const { text, range } = getActiveText(editor);
+        const { text } = getActiveText(editor);
         try {
           const converted = convertContent(text, 'json', toFormat, 2);
-          await editor.edit((editBuilder) => {
-            editBuilder.replace(range, converted);
-          });
-          vscode.window.showInformationMessage(
-            `⚡ Braces: Converted JSON to ${toFormat.toUpperCase()} successfully!`
-          );
+          await openGeneratedDocument(converted, CONVERSION_LANGUAGE[toFormat]);
         } catch (err) {
           vscode.window.showErrorMessage(
-            `⚡ Braces Conversion Error: ${err instanceof Error ? err.message : String(err)}`
+            `Bracer: could not convert to ${toFormat.toUpperCase()}. ${err instanceof Error ? err.message : String(err)}`
           );
         }
       })
     );
   }
 
-  registerConversionCommand('braces.convertToTOON', 'toon');
-  registerConversionCommand('braces.convertToYAML', 'yaml');
-  registerConversionCommand('braces.convertToXML', 'xml');
-  registerConversionCommand('braces.convertToCSV', 'csv');
-  registerConversionCommand('braces.convertToTOML', 'toml');
+  registerConversionCommand('bracer.convertToTOON', 'toon');
+  registerConversionCommand('bracer.convertToYAML', 'yaml');
+  registerConversionCommand('bracer.convertToXML', 'xml');
+  registerConversionCommand('bracer.convertToCSV', 'csv');
+  registerConversionCommand('bracer.convertToTOML', 'toml');
 
   // Command: Generate TypeScript
   context.subscriptions.push(
-    vscode.commands.registerCommand('braces.generateTypeScript', async () => {
+    vscode.commands.registerCommand('bracer.generateTypeScript', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
 
@@ -168,7 +176,7 @@ export function activate(context: vscode.ExtensionContext) {
         await openGeneratedDocument(tsCode, 'typescript');
       } catch (err) {
         vscode.window.showErrorMessage(
-          `⚡ Braces Generator Error: ${err instanceof Error ? err.message : String(err)}`
+          `Bracer: could not generate code. ${err instanceof Error ? err.message : String(err)}`
         );
       }
     })
@@ -176,7 +184,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Generate Zod
   context.subscriptions.push(
-    vscode.commands.registerCommand('braces.generateZod', async () => {
+    vscode.commands.registerCommand('bracer.generateZod', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
 
@@ -186,7 +194,7 @@ export function activate(context: vscode.ExtensionContext) {
         await openGeneratedDocument(zodCode, 'typescript');
       } catch (err) {
         vscode.window.showErrorMessage(
-          `⚡ Braces Generator Error: ${err instanceof Error ? err.message : String(err)}`
+          `Bracer: could not generate code. ${err instanceof Error ? err.message : String(err)}`
         );
       }
     })
@@ -194,7 +202,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Generate JSON Schema
   context.subscriptions.push(
-    vscode.commands.registerCommand('braces.generateJSONSchema', async () => {
+    vscode.commands.registerCommand('bracer.generateJSONSchema', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
 
@@ -204,7 +212,7 @@ export function activate(context: vscode.ExtensionContext) {
         await openGeneratedDocument(schema, 'json');
       } catch (err) {
         vscode.window.showErrorMessage(
-          `⚡ Braces Generator Error: ${err instanceof Error ? err.message : String(err)}`
+          `Bracer: could not generate code. ${err instanceof Error ? err.message : String(err)}`
         );
       }
     })
@@ -212,7 +220,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Generate Markdown Table
   context.subscriptions.push(
-    vscode.commands.registerCommand('braces.generateMarkdownTable', async () => {
+    vscode.commands.registerCommand('bracer.generateMarkdownTable', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
 
@@ -222,7 +230,7 @@ export function activate(context: vscode.ExtensionContext) {
         await openGeneratedDocument(table, 'markdown');
       } catch (err) {
         vscode.window.showErrorMessage(
-          `⚡ Braces Generator Error: ${err instanceof Error ? err.message : String(err)}`
+          `Bracer: could not generate code. ${err instanceof Error ? err.message : String(err)}`
         );
       }
     })
@@ -230,7 +238,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Optimize Tokens (Copy TOON to clipboard)
   context.subscriptions.push(
-    vscode.commands.registerCommand('braces.optimizeTokens', async () => {
+    vscode.commands.registerCommand('bracer.optimizeTokens', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
 
@@ -240,11 +248,11 @@ export function activate(context: vscode.ExtensionContext) {
         const stats = calculateTokenStats(text);
         await vscode.env.clipboard.writeText(toon);
         vscode.window.showInformationMessage(
-          `⚡ Braces: Copied TOON format to clipboard! Saved ~${stats.savedPercent}% tokens (${stats.jsonTokens} → ${stats.toonTokens} tokens).`
+          `Bracer: copied TOON to the clipboard. ${stats.jsonTokens} → ${stats.toonTokens} tokens (−${stats.savedPercent}%).`
         );
       } catch (err) {
         vscode.window.showErrorMessage(
-          `⚡ Braces Optimization Error: ${err instanceof Error ? err.message : String(err)}`
+          `Bracer: could not convert to TOON. ${err instanceof Error ? err.message : String(err)}`
         );
       }
     })
