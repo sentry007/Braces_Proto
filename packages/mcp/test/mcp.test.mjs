@@ -1,161 +1,202 @@
+// End-to-end tests: spawns the built MCP server and talks to it over stdio
+// exactly like an MCP client (Claude Code, Cursor, ...) would.
+import { describe, it, before, after } from 'node:test';
+import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import assert from 'node:assert';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SERVER = path.resolve(__dirname, '../bin/bracer-mcp.js');
+const REQUEST_TIMEOUT_MS = 15_000;
 
-const mcpScript = path.resolve(__dirname, '../dist/index.js');
-const child = spawn('node', [mcpScript]);
+/** Minimal JSON-RPC client over the server's stdio. */
+function startClient() {
+  const child = spawn(process.execPath, [SERVER], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const pending = new Map();
+  let nextId = 1;
+  let buffer = '';
 
-let buffer = '';
+  child.stdout.on('data', (chunk) => {
+    buffer += chunk.toString();
+    let newline;
+    while ((newline = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, newline).trim();
+      buffer = buffer.slice(newline + 1);
+      if (!line) continue;
+      const msg = JSON.parse(line);
+      const waiter = pending.get(msg.id);
+      if (waiter) {
+        pending.delete(msg.id);
+        clearTimeout(waiter.timer);
+        waiter.resolve(msg);
+      }
+    }
+  });
 
-function send(obj) {
-  child.stdin.write(JSON.stringify(obj) + '\n');
+  const send = (msg) => child.stdin.write(JSON.stringify(msg) + '\n');
+
+  return {
+    request(method, params = {}) {
+      const id = nextId++;
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          pending.delete(id);
+          reject(new Error(`${method} timed out after ${REQUEST_TIMEOUT_MS}ms`));
+        }, REQUEST_TIMEOUT_MS);
+        pending.set(id, { resolve, timer });
+        send({ jsonrpc: '2.0', id, method, params });
+      });
+    },
+    notify(method, params = {}) {
+      send({ jsonrpc: '2.0', method, params });
+    },
+    close() {
+      child.kill();
+    },
+  };
 }
 
-child.stdout.on('data', (data) => {
-  buffer += data.toString();
-  const lines = buffer.split('\n');
-  buffer = lines.pop() || '';
+let client;
 
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    try {
-      const msg = JSON.parse(line.trim());
+async function call(name, args) {
+  const res = await client.request('tools/call', { name, arguments: args });
+  return res;
+}
 
-      // 1. Initialize
-      if (msg.id === 1) {
-        assert.strictEqual(msg.result.serverInfo.name, 'braces-mcp');
-        console.log('✔ MCP 2.0 Initialization handshake successful');
-        send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
-      }
-      // 2. List tools
-      else if (msg.id === 2) {
-        const tools = msg.result?.tools || [];
-        assert.strictEqual(tools.length, 5);
-        console.log(`✔ Tools listed successfully: ${tools.map((t) => t.name).join(', ')}`);
-
-        // Test Tool 1: braces_repair_json
-        send({
-          jsonrpc: '2.0',
-          id: 3,
-          method: 'tools/call',
-          params: {
-            name: 'braces_repair_json',
-            arguments: { input: '[{ name: "item1" }, { name: "item2"' },
-          },
-        });
-      }
-      // 3. Tool 1 response -> Test Tool 2: braces_convert_format
-      else if (msg.id === 3) {
-        const res = JSON.parse(msg.result.content[0].text);
-        assert.strictEqual(res.success, true);
-        console.log('✔ Tool 1 (braces_repair_json): Repaired truncated array of objects');
-
-        send({
-          jsonrpc: '2.0',
-          id: 4,
-          method: 'tools/call',
-          params: {
-            name: 'braces_convert_format',
-            arguments: {
-              content: '{"user": "Alice", "role": "admin"}',
-              fromFormat: 'json',
-              toFormat: 'yaml',
-            },
-          },
-        });
-      }
-      // 4. Tool 2 response -> Test Tool 3: braces_validate_json
-      else if (msg.id === 4) {
-        const text = msg.result.content[0].text;
-        assert.ok(text.includes('user: Alice'));
-        console.log('✔ Tool 2 (braces_convert_format): Converted JSON to YAML');
-
-        send({
-          jsonrpc: '2.0',
-          id: 5,
-          method: 'tools/call',
-          params: {
-            name: 'braces_validate_json',
-            arguments: { jsonString: '{"valid": true}' },
-          },
-        });
-      }
-      // 5. Tool 3 response -> Test Tool 4: braces_generate_schema
-      else if (msg.id === 5) {
-        const res = JSON.parse(msg.result.content[0].text);
-        assert.strictEqual(res.isValid, true);
-        console.log('✔ Tool 3 (braces_validate_json): Validated JSON syntax');
-
-        send({
-          jsonrpc: '2.0',
-          id: 6,
-          method: 'tools/call',
-          params: {
-            name: 'braces_generate_schema',
-            arguments: {
-              jsonString: '[{"id": 1, "name": "A"}, {"id": 2, "name": "B", "tag": "dev"}]',
-              generator: 'typescript',
-              nameHint: 'Account',
-            },
-          },
-        });
-      }
-      // 6. Tool 4 response -> Test Tool 5: braces_optimize_tokens
-      else if (msg.id === 6) {
-        const code = msg.result.content[0].text;
-        assert.ok(code.includes('export interface AccountItem'));
-        assert.ok(code.includes('tag?: string;'));
-        console.log('✔ Tool 4 (braces_generate_schema): Generated TypeScript with optionality');
-
-        send({
-          jsonrpc: '2.0',
-          id: 7,
-          method: 'tools/call',
-          params: {
-            name: 'braces_optimize_tokens',
-            arguments: {
-              jsonString: '{"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}',
-              targetFormat: 'toon',
-            },
-          },
-        });
-      }
-      // 7. Tool 5 response -> Finished!
-      else if (msg.id === 7) {
-        const res = JSON.parse(msg.result.content[0].text);
-        assert.strictEqual(res.targetFormat, 'toon');
-        assert.ok(res.tokenStats.jsonTokens > 0);
-        console.log(`✔ Tool 5 (braces_optimize_tokens): Encoded to TOON (${res.tokenStats.savedPercent}% tokens saved)`);
-        console.log('✨ All 5 MCP 2.0 Tools Verified End-to-End!');
-
-        child.kill();
-        process.exit(0);
-      }
-    } catch (e) {
-      console.error('Test error:', e);
-      child.kill();
-      process.exit(1);
-    }
-  }
-});
-
-child.stderr.on('data', (data) => {
-  // Stderr is used by MCP for server logs
-  // console.log('[MCP Stderr]:', data.toString().trim());
-});
-
-// Send Initialize
-send({
-  jsonrpc: '2.0',
-  id: 1,
-  method: 'initialize',
-  params: {
-    protocolVersion: '2024-11-05',
+before(async () => {
+  client = startClient();
+  const init = await client.request('initialize', {
+    protocolVersion: '2025-11-25',
     capabilities: {},
-    clientInfo: { name: 'mcp-e2e-client', version: '2.0.0' },
-  },
+    clientInfo: { name: 'bracer-e2e', version: '1.0.0' },
+  });
+  assert.equal(init.result.serverInfo.name, 'bracer-mcp');
+  assert.match(init.result.serverInfo.version, /^\d+\.\d+\.\d+/);
+  client.notify('notifications/initialized');
+});
+
+after(() => client?.close());
+
+describe('tools/list', () => {
+  it('lists all five tools with titles and read-only annotations', async () => {
+    const { result } = await client.request('tools/list');
+    const names = result.tools.map((t) => t.name).sort();
+    assert.deepEqual(names, [
+      'bracer_convert_format',
+      'bracer_generate_schema',
+      'bracer_optimize_tokens',
+      'bracer_repair_json',
+      'bracer_validate_json',
+    ]);
+    for (const tool of result.tools) {
+      assert.ok(tool.title, `${tool.name} has a title`);
+      assert.equal(tool.annotations?.readOnlyHint, true, `${tool.name} is read-only`);
+      assert.equal(tool.annotations?.openWorldHint, false, `${tool.name} is closed-world`);
+    }
+    const withOutput = result.tools.filter((t) => t.outputSchema).map((t) => t.name).sort();
+    assert.deepEqual(withOutput, ['bracer_optimize_tokens', 'bracer_repair_json', 'bracer_validate_json']);
+  });
+});
+
+describe('bracer_repair_json', () => {
+  it('repairs truncated, fenced LLM output and returns structured content', async () => {
+    const { result } = await call('bracer_repair_json', {
+      input: "Here you go:\n```json\n[{ name: 'Ada', active: True, score: NaN",
+    });
+    assert.equal(result.isError, undefined);
+    assert.equal(result.structuredContent.success, true);
+    assert.deepEqual(JSON.parse(result.structuredContent.repaired), [{ name: 'Ada', active: true, score: null }]);
+    assert.deepEqual(JSON.parse(result.content[0].text), result.structuredContent);
+  });
+
+  it('leaves words like "undefined" inside strings alone', async () => {
+    const { result } = await call('bracer_repair_json', { input: '{"msg": "value is undefined here",}' });
+    assert.equal(JSON.parse(result.structuredContent.repaired).msg, 'value is undefined here');
+  });
+});
+
+describe('bracer_convert_format', () => {
+  it('converts JSON to TOON', async () => {
+    const { result } = await call('bracer_convert_format', {
+      content: '{"users":[{"id":1,"name":"A"},{"id":2,"name":"B"}]}',
+      fromFormat: 'json',
+      toFormat: 'toon',
+    });
+    assert.equal(result.content[0].text, 'users[2]{id,name}:\n  1,A\n  2,B');
+  });
+
+  it('round-trips YAML to JSON', async () => {
+    const { result } = await call('bracer_convert_format', { content: 'a: 1\nb: [x, y]\n', fromFormat: 'yaml', toFormat: 'json' });
+    assert.deepEqual(JSON.parse(result.content[0].text), { a: 1, b: ['x', 'y'] });
+  });
+
+  it('reports TOML null values as a tool error', async () => {
+    const { result } = await call('bracer_convert_format', { content: '{"a":null}', fromFormat: 'json', toFormat: 'toml' });
+    assert.equal(result.isError, true);
+    assert.match(result.content[0].text, /TOML has no null type/);
+  });
+
+  it('rejects an unknown format', async () => {
+    const res = await call('bracer_convert_format', { content: '{}', fromFormat: 'json', toFormat: 'docx' });
+    // Either the SDK rejects the input schema or the tool reports an error; both are acceptable
+    assert.ok(res.error || res.result.isError, 'unknown format is rejected');
+  });
+});
+
+describe('bracer_validate_json', () => {
+  it('reports line and column for invalid JSON', async () => {
+    const { result } = await call('bracer_validate_json', { jsonString: '{\n  "a": 1\n  "b": 2\n}' });
+    assert.equal(result.structuredContent.isValid, false);
+    assert.equal(result.structuredContent.error.line, 3);
+  });
+
+  it('accepts valid JSON, including a bare null', async () => {
+    const { result } = await call('bracer_validate_json', { jsonString: 'null' });
+    assert.equal(result.structuredContent.isValid, true);
+  });
+});
+
+describe('bracer_generate_schema', () => {
+  it('generates TypeScript with optional keys', async () => {
+    const { result } = await call('bracer_generate_schema', {
+      jsonString: '[{"id":1},{"id":2,"email":"b@x.io"}]',
+      generator: 'typescript',
+      nameHint: 'User',
+    });
+    assert.match(result.content[0].text, /email\?: string;/);
+    assert.match(result.content[0].text, /export type User = UserItem\[\];/);
+  });
+
+  it('generates a Zod schema', async () => {
+    const { result } = await call('bracer_generate_schema', { jsonString: '{"id":1}', generator: 'zod' });
+    assert.match(result.content[0].text, /z\.object\(/);
+  });
+});
+
+describe('bracer_optimize_tokens', () => {
+  it('returns exact o200k_base token counts', async () => {
+    const { result } = await call('bracer_optimize_tokens', {
+      jsonString: '{"users":[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]}',
+    });
+    const { tokenStats, optimizedPayload, targetFormat } = result.structuredContent;
+    assert.equal(targetFormat, 'toon');
+    assert.equal(tokenStats.tokenizer, 'o200k_base');
+    assert.equal(tokenStats.jsonTokens, 45);
+    assert.equal(tokenStats.toonTokens, 19);
+    assert.match(optimizedPayload, /^users\[2\]\{id,name\}:/);
+  });
+
+  it('returns an error result for invalid JSON instead of crashing', async () => {
+    const { result } = await call('bracer_optimize_tokens', { jsonString: '{oops' });
+    assert.equal(result.isError, true);
+  });
+});
+
+describe('limits', () => {
+  it('rejects inputs over the 5 MB cap', async () => {
+    const { result } = await call('bracer_validate_json', { jsonString: 'x'.repeat(5_000_001) });
+    assert.equal(result.isError, true);
+    assert.match(result.content[0].text, /limit/);
+  });
 });
