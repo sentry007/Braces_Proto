@@ -17,13 +17,21 @@ export interface ValidationResult {
   };
 }
 
+// Token counting method: real o200k_base BPE, or the heuristic fallback
+export type TokenizerName = 'o200k_base' | 'estimate';
+
 // Token economy statistics
 export interface TokenStats {
+  /** Tokens for the input re-formatted as 2-space-indented JSON */
   jsonTokens: number;
   toonTokens: number;
   yamlTokens: number;
   minifiedTokens: number;
+  /** TOON savings vs formatted JSON */
   savedPercent: number;
+  /** TOON savings vs minified JSON (the stricter comparison) */
+  savedVsMinifiedPercent: number;
+  tokenizer: TokenizerName;
 }
 
 // Smart heuristic repair result

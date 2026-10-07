@@ -56,7 +56,34 @@ export function validateJSON(jsonString: string): ValidationResult {
 }
 
 /**
- * Attempts to parse JSON string, returns parsed object or null
+ * Parses a JSON string without throwing. Unlike `parseJSON`, this distinguishes
+ * valid `null` input from a parse failure.
+ */
+export function tryParseJSON(
+  jsonString: string
+): { ok: true; value: unknown } | { ok: false; error: string } {
+  try {
+    return { ok: true, value: JSON.parse(jsonString) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * Parses a JSON string, throwing a descriptive error if it is invalid.
+ * `context` names the operation for the error message (e.g. "Cannot convert to YAML").
+ */
+export function requireJSON(jsonString: string, context: string): unknown {
+  const result = tryParseJSON(jsonString);
+  if (!result.ok) {
+    throw new Error(`Invalid JSON: ${context}. ${result.error}`);
+  }
+  return result.value;
+}
+
+/**
+ * Attempts to parse JSON string, returns parsed object or null.
+ * Note: valid `null` input also returns null; use `tryParseJSON` to tell them apart.
  */
 export function parseJSON(jsonString: string): unknown | null {
   try {

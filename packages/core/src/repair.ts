@@ -19,22 +19,22 @@ export function repairJSON(input: string): RepairResult {
   let text = input.trim();
   const fixes: string[] = [];
 
-  // 1. Strip markdown code block wrappers ```json ... ``` or ``` ... ```
-  if (text.startsWith('```')) {
-    text = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+  // 1. Extract the first markdown code block (```json ... ```), even when the
+  // LLM wrapped it in prose like "Here is the JSON:"
+  const fence = text.match(/```[\w-]*[^\S\n]*\n?([\s\S]*?)(?:\n?```|$)/);
+  if (fence) {
+    text = fence[1].trim();
     fixes.push('Stripped markdown code block wrappers');
   }
 
-  // 2. Normalize bare JS-specific literals that are not JSON or Python constants
-  // (e.g. bare undefined -> null, NaN -> null)
-  if (/\bundefined\b/.test(text)) {
-    // Only replace bare undefined outside quotes
-    text = text.replace(/(?<=[:\[,\s])undefined(?=[,\s\]\}]|$)/g, 'null');
-    fixes.push('Normalized "undefined" to null');
-  }
-  if (/\bNaN\b/.test(text)) {
-    text = text.replace(/(?<=[:\[,\s])NaN(?=[,\s\]\}]|$)/g, 'null');
-    fixes.push('Normalized "NaN" to null');
+  // 2. Normalize bare JS-only literals (undefined, NaN, Infinity) to null.
+  // String literals are skipped, so "value is undefined" is left untouched.
+  const normalized = replaceBareLiterals(text);
+  if (normalized.replaced.length > 0) {
+    text = normalized.text;
+    for (const literal of normalized.replaced) {
+      fixes.push(`Normalized "${literal}" to null`);
+    }
   }
 
   try {
@@ -45,8 +45,8 @@ export function repairJSON(input: string): RepairResult {
     const parsed = JSON.parse(repairedRaw);
     const formatted = JSON.stringify(parsed, null, 2);
 
-    if (fixes.length === 0 && formatted !== input.trim()) {
-      fixes.push('Corrected JSON syntax & formatting');
+    if (fixes.length === 0 && repairedRaw !== text) {
+      fixes.push('Corrected JSON syntax');
     }
 
     return {
@@ -62,4 +62,49 @@ export function repairJSON(input: string): RepairResult {
       error: err instanceof Error ? err.message : 'Could not automatically resolve all syntax errors',
     };
   }
+}
+
+const BARE_LITERALS = ['undefined', '-Infinity', 'Infinity', 'NaN'];
+
+/**
+ * Replaces bare JS literals that JSON cannot represent with `null`, skipping
+ * anything inside single- or double-quoted string literals.
+ */
+function replaceBareLiterals(text: string): { text: string; replaced: string[] } {
+  let out = '';
+  const replaced = new Set<string>();
+  let i = 0;
+
+  while (i < text.length) {
+    const ch = text[i];
+
+    if (ch === '"' || ch === "'") {
+      // Copy the whole string literal verbatim, honouring backslash escapes
+      let j = i + 1;
+      while (j < text.length && text[j] !== ch) {
+        j += text[j] === '\\' ? 2 : 1;
+      }
+      out += text.slice(i, j + 1);
+      i = j + 1;
+      continue;
+    }
+
+    const literal = BARE_LITERALS.find(
+      (lit) =>
+        text.startsWith(lit, i) &&
+        !/[\w$]/.test(text[i - 1] ?? '') &&
+        !/[\w$]/.test(text[i + lit.length] ?? '')
+    );
+    if (literal) {
+      out += 'null';
+      replaced.add(literal);
+      i += literal.length;
+      continue;
+    }
+
+    out += ch;
+    i++;
+  }
+
+  return { text: out, replaced: [...replaced] };
 }

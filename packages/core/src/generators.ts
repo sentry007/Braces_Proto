@@ -1,4 +1,4 @@
-import { parseJSON } from './validator';
+import { requireJSON } from './validator';
 
 /**
  * Capitalizes string for interface/type names
@@ -24,10 +24,7 @@ function isSafeIdentifier(key: string): boolean {
  * multi-element inspection and optionality detection for arrays of records.
  */
 export function jsonToTypeScript(jsonString: string, rootName: string = 'RootObject'): string {
-  const parsed = parseJSON(jsonString);
-  if (parsed === null) {
-    throw new Error('Invalid JSON: Cannot generate TypeScript types');
-  }
+  const parsed = requireJSON(jsonString, 'Cannot generate TypeScript types');
 
   const interfaces: string[] = [];
   const generatedNames = new Set<string>();
@@ -77,7 +74,17 @@ export function jsonToTypeScript(jsonString: string, rootName: string = 'RootObj
 
         const body = `export interface ${interfaceName} {\n${fields.join('\n')}\n}`;
         interfaces.push(body);
-        return `${interfaceName}[]`;
+
+        // Keep non-object members of mixed arrays like [1, {...}]
+        const otherTypes = Array.from(
+          new Set(
+            value
+              .filter((it) => !(typeof it === 'object' && it !== null && !Array.isArray(it)))
+              .map((it) => generateType(it, `${nameHint}Item`))
+          )
+        );
+        if (otherTypes.length === 0) return `${interfaceName}[]`;
+        return `(${[interfaceName, ...otherTypes].join(' | ')})[]`;
       }
 
       // Heterogeneous primitive array
@@ -109,19 +116,23 @@ export function jsonToTypeScript(jsonString: string, rootName: string = 'RootObj
     return 'unknown';
   }
 
-  generateType(parsed, rootName);
+  const rootType = generateType(parsed, rootName);
+  const output = interfaces.reverse();
 
-  return interfaces.reverse().join('\n\n');
+  // Roots that aren't a plain object (arrays, primitives) get a named type alias
+  const rootTypeName = toPascalCase(rootName);
+  if (rootType !== rootTypeName) {
+    output.push(`export type ${rootTypeName} = ${rootType};`);
+  }
+
+  return output.join('\n\n');
 }
 
 /**
  * Generates Zod schema from JSON with multi-element inspection
  */
 export function jsonToZod(jsonString: string, rootName: string = 'RootSchema'): string {
-  const parsed = parseJSON(jsonString);
-  if (parsed === null) {
-    throw new Error('Invalid JSON: Cannot generate Zod schema');
-  }
+  const parsed = requireJSON(jsonString, 'Cannot generate Zod schema');
 
   function generateZod(value: unknown): string {
     if (value === null) return 'z.null()';
@@ -198,10 +209,7 @@ export function jsonToZod(jsonString: string, rootName: string = 'RootSchema'): 
  * Generates JSON Schema (Draft 2020-12) from JSON with multi-element inspection
  */
 export function jsonToJSONSchema(jsonString: string, title: string = 'GeneratedSchema'): string {
-  const parsed = parseJSON(jsonString);
-  if (parsed === null) {
-    throw new Error('Invalid JSON: Cannot generate JSON Schema');
-  }
+  const parsed = requireJSON(jsonString, 'Cannot generate JSON Schema');
 
   function buildSchema(val: unknown): Record<string, unknown> {
     if (val === null) return { type: 'null' };
@@ -284,10 +292,7 @@ export function jsonToJSONSchema(jsonString: string, title: string = 'GeneratedS
  * Generates a Markdown table representation of JSON
  */
 export function jsonToMarkdownTable(jsonString: string): string {
-  const parsed = parseJSON(jsonString);
-  if (parsed === null) {
-    throw new Error('Invalid JSON: Cannot generate Markdown Table');
-  }
+  const parsed = requireJSON(jsonString, 'Cannot generate Markdown Table');
 
   if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0] !== null) {
     const keys = Array.from(
